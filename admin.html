@@ -40,9 +40,10 @@
         button { padding: 10px 15px; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-family: 'Orbitron', sans-serif; text-transform: uppercase; transition: 0.2s;}
         button.btn-primary { background: var(--mrq-blue); }
         button.btn-primary:hover { background: #1976D2; }
-        button.btn-gold { background: var(--mrq-gold); color: black; width: 100%; margin-top: 15px; font-size: 16px; }
+        button.btn-gold { background: var(--mrq-gold); color: black; }
+        button.btn-gold:hover { filter: brightness(1.1); }
         button.btn-red { background-color: var(--mrq-red); padding: 5px 10px; font-size: 12px; }
-        button.btn-green { background-color: var(--mrq-green); color: white; padding: 8px 15px; font-size: 16px; width: 100%; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4);}
+        button.btn-green { background-color: var(--mrq-green); color: white; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4);}
         
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 18px;}
         td, th { padding: 12px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
@@ -61,9 +62,24 @@
         .status-dnf { background: var(--mrq-red); color: white; }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* MODAL CSS */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-box { background: var(--mrq-panel); padding: 40px; border-radius: 12px; border: 3px solid var(--mrq-gold); text-align: center; max-width: 550px; box-shadow: 0 0 30px rgba(255, 179, 0, 0.3); }
+        .modal-box h2 { font-size: 32px; color: var(--mrq-green); margin-top: 0; }
+        .modal-box p { font-size: 18px; color: #c9d1d9; margin-bottom: 30px; }
     </style>
 </head>
 <body id="adminBody">
+
+<div class="modal-overlay" id="endRoundModal">
+    <div class="modal-box">
+        <h2>ALL TEAMS FINISHED!</h2>
+        <p>The timer has automatically stopped. Please select your next action:</p>
+        <button class="btn-primary" style="width: 100%; margin-bottom: 15px; padding: 15px; font-size: 16px;" onclick="handleModalAction('next')">CALCULATE SCORES & BEGIN ANOTHER ROUND</button>
+        <button class="btn-gold" style="width: 100%; padding: 15px; font-size: 16px;" onclick="handleModalAction('end')">CALCULATE FINAL SCORES & END EVENT</button>
+    </div>
+</div>
 
 <div class="container">
     <div class="header-panel">
@@ -112,6 +128,7 @@
             <thead><tr><th>TEAM NAME</th><th>TOTAL PTS</th><th>TOTAL TIME</th><th>ACTION</th></tr></thead>
             <tbody id="teams-list-body"></tbody>
         </table>
+        <button class="btn-green" onclick="lockTeamsAndProceed()" style="width: 100%; margin-top: 25px; padding: 15px; font-size: 18px;">[ LOCK ROSTER & START MATCH ]</button>
     </div>
 
     <div id="roundsTab" class="tab-content">
@@ -119,7 +136,7 @@
             <div style="color: white; font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 5px;">ROUND <span id="roundCounterDisplay">1</span> TIMER</div>
             <div id="timeClock" class="timer-display">00:00.0</div>
             <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;" id="timerControlsBox">
-                <button class="btn-green" onclick="startRound()">START BUILD ROUND</button>
+                <button class="btn-green" style="padding: 15px 30px; font-size: 18px;" onclick="startRound()">START BUILD ROUND</button>
             </div>
         </div>
 
@@ -158,6 +175,7 @@
   let allGamesData = {}; 
   let localTimerInterval = null;
   let audioCtx = null;
+  let isAutoEnding = false;
   
   let unsubGames = null;
   let unsubTeams = null;
@@ -283,6 +301,15 @@
           snapshot.forEach(d => currentTeamsList.push({ id: d.id, ...d.data() }));
           renderTeamsList();
           renderTimerAndRoundUI(allGamesData[currentGameId]);
+
+          // --- AUTO STOP LOGIC ---
+          const activeGame = allGamesData[currentGameId];
+          if (activeGame && activeGame.roundState === 'running' && currentTeamsList.length > 0) {
+              const allDone = currentTeamsList.every(t => t.currentRoundStatus === 'done');
+              if (allDone && !isAutoEnding) {
+                  triggerAutoEndRound();
+              }
+          }
       });
 
       switchTab('teamsTab', document.getElementById('tabBtn1'));
@@ -317,7 +344,8 @@
           totalPoints: 0, 
           totalTimeMs: 0,
           currentRoundStatus: 'idle', 
-          currentRoundTimeMs: 0
+          currentRoundTimeMs: 0,
+          ncPenaltyMs: 0
       });
       document.getElementById("teamName").value = ""; 
   };
@@ -330,6 +358,12 @@
       if(confirm(`Delete Team: ${name}?`)) await deleteDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", id));
   };
 
+  window.lockTeamsAndProceed = function() {
+      if(currentTeamsList.length === 0) return alert("Please register at least 1 team first.");
+      if(confirm("Lock Roster and proceed to the Match Dashboard?")) {
+          switchTab('roundsTab', document.getElementById('tabBtn2'));
+      }
+  };
 
   function renderTimerAndRoundUI(game) {
       if(!game) return;
@@ -351,7 +385,11 @@
           else if (game.roundState === 'running') {
               if (team.currentRoundStatus === 'done') {
                   statusHtml = `<span class="status-badge status-done">${formatTime(team.currentRoundTimeMs)}</span>`;
-                  actionHtml = `<span style="color:var(--mrq-green); font-weight:bold;">FINISHED</span>`;
+                  // THE NC BUTTON LOGIC
+                  actionHtml = `
+                    <span style="color:var(--mrq-green); font-weight:bold; margin-right:15px;">FINISHED</span>
+                    <button class="btn-red" style="padding:5px 10px; border:2px solid white;" onclick="markTeamNC('${team.id}')">NC</button>
+                  `;
               } else {
                   statusHtml = `<span class="status-badge status-playing">BUILDING...</span>`;
                   actionHtml = `<button class="btn-primary" style="padding: 10px 20px; font-size:16px; background:var(--mrq-gold); color:black;" onclick="markTeamDone('${team.id}')">DONE!</button>`;
@@ -365,6 +403,14 @@
               }
               actionHtml = `<span style="color:#555;">ROUND OVER</span>`;
           }
+          else if (game.roundState === 'finished') {
+              if (team.currentRoundStatus === 'done') {
+                  statusHtml = `<span class="status-badge status-done">${formatTime(team.currentRoundTimeMs)}</span>`;
+              } else {
+                  statusHtml = `<span class="status-badge status-dnf">LOCKED</span>`;
+              }
+              actionHtml = `<span style="color:#555;">LOCKED</span>`;
+          }
 
           htmlString += `<tr>
               <td class="team-name">${team.name}</td>
@@ -376,13 +422,15 @@
 
       clearInterval(localTimerInterval);
       if (game.roundState === 'idle') {
+          display.style.fontSize = "70px";
           display.innerText = formatTime(game.timerDurationMs);
           display.className = 'timer-display';
-          controlsBox.innerHTML = `<button class="btn-green" onclick="startRound()">START BUILD ROUND</button>`;
+          controlsBox.innerHTML = `<button class="btn-green" style="padding: 15px 30px; font-size: 18px;" onclick="startRound()">START BUILD ROUND</button>`;
       } 
       else if (game.roundState === 'running') {
+          display.style.fontSize = "70px";
           display.className = 'timer-display running';
-          controlsBox.innerHTML = `<button class="btn-red" onclick="forceEndRound()">STOP ROUND (TIME UP)</button>`;
+          controlsBox.innerHTML = `<button class="btn-red" onclick="forceEndRound(false)">STOP ROUND (TIME UP)</button>`;
           
           localTimerInterval = setInterval(() => {
               let elapsed = Date.now() - game.roundStartTime;
@@ -392,18 +440,23 @@
                   clearInterval(localTimerInterval);
                   display.innerText = "00:00.0";
                   display.className = 'timer-display stopped';
-                  forceEndRound(true); 
+                  triggerAutoEndRound(); 
               } else {
                   display.innerText = formatTime(remaining);
               }
           }, 50);
       }
       else if (game.roundState === 'ended') {
+          display.style.fontSize = "70px";
           display.innerText = "00:00.0";
           display.className = 'timer-display stopped';
-          controlsBox.innerHTML = `
-              <button class="btn-gold" style="width:auto; margin-top:0;" onclick="calculatePointsAndNext()">CALCULATE POINTS & PREPARE NEXT ROUND</button>
-          `;
+          controlsBox.innerHTML = `<button class="btn-gold" style="width:auto; margin-top:0; padding:15px; font-size:16px;" onclick="document.getElementById('endRoundModal').style.display='flex'">CALCULATE POINTS</button>`;
+      }
+      else if (game.roundState === 'finished') {
+          display.innerText = "EVENT FINISHED";
+          display.style.fontSize = "50px";
+          display.className = 'timer-display stopped';
+          controlsBox.innerHTML = `<span style="color:var(--mrq-gold); font-weight:bold; font-size: 20px;">ALL ROUNDS COMPLETED. SCORES LOCKED.</span>`;
       }
   }
 
@@ -414,7 +467,8 @@
       const teamPromises = currentTeamsList.map(t => 
           updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", t.id), { 
               currentRoundStatus: 'playing', 
-              currentRoundTimeMs: 0 
+              currentRoundTimeMs: 0,
+              ncPenaltyMs: 0 // Reset penalty at the start of every round
           })
       );
       await Promise.all(teamPromises);
@@ -431,24 +485,60 @@
       
       playSound('done');
       const elapsed = Date.now() - game.roundStartTime;
+      const team = currentTeamsList.find(t => t.id === teamId);
+      const penalty = team.ncPenaltyMs || 0;
       
+      // Calculate final recorded time by adding any NC penalty they accumulated
       await updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamId), { 
           currentRoundStatus: 'done', 
-          currentRoundTimeMs: elapsed 
+          currentRoundTimeMs: elapsed + penalty 
       });
   };
 
-  window.forceEndRound = async function(auto = false) {
-      if(!auto && !confirm("Stop the round right now?")) return;
-      playSound('end');
-      await updateDoc(doc(db, "mrq_games", currentGameId), { roundState: 'ended' });
+  window.markTeamNC = async function(teamId) {
+      const game = allGamesData[currentGameId];
+      if(game.roundState !== 'running') return;
+
+      const team = currentTeamsList.find(t => t.id === teamId);
+      if(!team || team.currentRoundStatus !== 'done') return;
+
+      // Find the slowest team that is currently marked 'done'
+      const doneTeams = currentTeamsList.filter(t => t.currentRoundStatus === 'done');
+      let maxDoneTime = 0;
+      if(doneTeams.length > 0) {
+          maxDoneTime = Math.max(...doneTeams.map(t => t.currentRoundTimeMs));
+      }
+
+      // Calculate how much extra time needs to be added to ensure they place AFTER the slowest correct team
+      const penalty = Math.max(0, maxDoneTime - team.currentRoundTimeMs);
+      const newTotalPenalty = (team.ncPenaltyMs || 0) + penalty;
+
+      // Revert team to playing state
+      await updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamId), { 
+          currentRoundStatus: 'playing', 
+          ncPenaltyMs: newTotalPenalty
+      });
   };
 
-  window.calculatePointsAndNext = async function() {
-      if(!confirm("This will calculate points based on time, assign them to the leaderboard, and setup the next round. Proceed?")) return;
-      
+  async function triggerAutoEndRound() {
+      if(isAutoEnding) return;
+      isAutoEnding = true;
+      playSound('end');
+      await updateDoc(doc(db, "mrq_games", currentGameId), { roundState: 'ended' });
+      document.getElementById('endRoundModal').style.display = 'flex';
+      isAutoEnding = false;
+  }
+
+  window.forceEndRound = async function() {
+      if(!confirm("Stop the round right now for all teams?")) return;
+      triggerAutoEndRound();
+  };
+
+  window.handleModalAction = async function(action) {
+      document.getElementById('endRoundModal').style.display = 'none';
       const game = allGamesData[currentGameId];
       
+      // Sort teams by evaluated time
       let roundResults = currentTeamsList.map(t => {
           let time = (t.currentRoundStatus === 'done') ? t.currentRoundTimeMs : game.timerDurationMs;
           return { ...t, evaluatedTime: time };
@@ -456,24 +546,29 @@
       
       roundResults.sort((a, b) => a.evaluatedTime - b.evaluatedTime);
 
+      // Assign Points
       const teamPromises = roundResults.map((teamData, index) => {
           let pointsEarned = index < POINTS_SYSTEM.length ? POINTS_SYSTEM[index] : 0;
-          
           return updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamData.id), { 
               totalPoints: teamData.totalPoints + pointsEarned,
               totalTimeMs: teamData.totalTimeMs + teamData.evaluatedTime,
               currentRoundStatus: 'idle',
-              currentRoundTimeMs: 0
+              currentRoundTimeMs: 0,
+              ncPenaltyMs: 0
           });
       });
       await Promise.all(teamPromises);
 
-      await updateDoc(doc(db, "mrq_games", currentGameId), { 
-          roundState: 'idle',
-          currentRound: game.currentRound + 1
-      });
-      
-      alert("Points calculated! Leaderboard updated.");
+      if (action === 'next') {
+          await updateDoc(doc(db, "mrq_games", currentGameId), { 
+              roundState: 'idle',
+              currentRound: game.currentRound + 1
+          });
+      } else {
+          await updateDoc(doc(db, "mrq_games", currentGameId), { 
+              roundState: 'finished'
+          });
+      }
   };
 
 </script>
