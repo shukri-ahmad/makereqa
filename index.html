@@ -66,7 +66,7 @@
 
     <!-- PUBLIC MATCH TIMER -->
     <div id="publicTimerUI" class="public-timer-container" style="display:none;">
-        <div style="color: white; font-size: 18px; font-weight: bold; letter-spacing: 4px; font-family: 'Orbitron', sans-serif; margin-bottom: 5px;">ROUND <span id="pubRoundText"></span> TIMER</div>
+        <div id="pubRoundHeader" style="color: white; font-size: 18px; font-weight: bold; letter-spacing: 4px; font-family: 'Orbitron', sans-serif; margin-bottom: 5px;">ROUND <span id="pubRoundText"></span> TIMER</div>
         <div id="publicTimeClock" class="public-timer-display">00:00.0</div>
     </div>
     
@@ -145,7 +145,7 @@
 
   let localTimerInterval = null;
   let endSoundPlayed = false;
-  let currentTimerState = ''; // Fixed glitch prevention tracker
+  let currentTimerState = ''; 
 
   async function loadGamesList() {
       const selectElement = document.getElementById("publicGameSelect");
@@ -176,11 +176,12 @@
               document.getElementById("publicTimerUI").style.display = "block";
               document.getElementById("pubRoundText").innerText = game.currentRound;
               const display = document.getElementById("publicTimeClock");
+              const header = document.getElementById("pubRoundHeader");
 
-              // --- FIXED PUBLIC TIMER ENGINE ---
               if (game.roundState === 'idle') {
                   if (currentTimerState !== 'idle') {
                       clearInterval(localTimerInterval);
+                      header.innerHTML = `ROUND <span id="pubRoundText">${game.currentRound}</span> TIMER`;
                       display.style.fontSize = "100px";
                       display.innerText = formatTime(game.timerDurationMs);
                       display.className = 'public-timer-display';
@@ -191,6 +192,7 @@
               else if (game.roundState === 'running') {
                   if (currentTimerState !== 'running') {
                       clearInterval(localTimerInterval);
+                      header.innerHTML = `ROUND <span id="pubRoundText">${game.currentRound}</span> TIMER`;
                       display.style.fontSize = "100px";
                       display.className = 'public-timer-display running';
                       if (!endSoundPlayed) playSound('start');
@@ -214,8 +216,13 @@
               else if (game.roundState === 'ended') {
                   if (currentTimerState !== 'ended') {
                       clearInterval(localTimerInterval);
+                      header.innerHTML = `ROUND <span id="pubRoundText">${game.currentRound}</span> JUDGING PHASE`;
                       display.style.fontSize = "100px";
-                      display.innerText = "00:00.0";
+                      
+                      // Show exact stopped time on public screen
+                      let remaining = game.timerDurationMs - game.pausedElapsed;
+                      display.innerText = formatTime(remaining > 0 ? remaining : 0);
+                      
                       display.className = 'public-timer-display stopped';
                       currentTimerState = 'ended';
                   }
@@ -223,6 +230,7 @@
               else if (game.roundState === 'finished') {
                   if (currentTimerState !== 'finished') {
                       clearInterval(localTimerInterval);
+                      header.innerHTML = "SYSTEM LOCKED";
                       display.innerText = "EVENT FINISHED";
                       display.style.fontSize = "65px";
                       display.className = 'public-timer-display stopped';
@@ -260,6 +268,7 @@
             if (team.currentRoundStatus === 'idle') statusHtml = `<span style="color:#555;">WAITING</span>`;
             else if (team.currentRoundStatus === 'playing') statusHtml = `<span class="status-badge status-playing">BUILDING...</span>`;
             else if (team.currentRoundStatus === 'done') statusHtml = `<span class="status-badge status-done">${formatTime(team.currentRoundTimeMs)}</span>`;
+            else if (team.currentRoundStatus === 'nc') statusHtml = `<span class="status-badge status-dnf">MARKING NC</span>`;
             
             sBody.innerHTML += `<tr>
                 <td class="team-name">${team.name}</td>
