@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MakeReqa Build & Match - LIVE</title>
+    <title>Admin - MakeReqa Build & Match</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -16,84 +16,158 @@
             --text-main: #FFFFFF;
         }
 
-        body { font-family: 'Rajdhani', sans-serif; background-color: var(--mrq-dark); color: var(--text-main); margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; background: var(--mrq-panel); padding: 20px 30px; border-radius: 12px; border-top: 5px solid var(--mrq-gold); box-shadow: 0 10px 30px rgba(0,0,0,0.8); margin-bottom: 30px; }
+        body { font-family: 'Rajdhani', sans-serif; background-color: var(--mrq-dark); color: var(--text-main); padding: 20px; display: none; }
+        .container { max-width: 800px; margin: 0 auto; background: var(--mrq-panel); padding: 20px 30px; border-radius: 12px; border-top: 5px solid var(--mrq-gold); border-bottom: 5px solid var(--mrq-blue); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
-        .header-links { text-align: right; margin-bottom: 10px; }
-        .header-links a { color: var(--mrq-blue); text-decoration: none; font-weight: bold; font-family: 'Orbitron', sans-serif; font-size: 14px;}
+        .header-panel { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;}
+        .header-panel img { max-width: 200px; }
         
-        h1, h2, h3 { font-family: 'Orbitron', sans-serif; text-align: center; color: white; margin-top: 0;}
+        .header-controls { display: flex; align-items: center; gap: 20px;}
+        .header-controls a { color: var(--mrq-gold); text-decoration: none; font-weight: bold; font-family: 'Orbitron', sans-serif; font-size: 12px; }
+        .header-controls a:hover { color: #FFF; }
         
-        .game-selector { text-align: center; margin-bottom: 25px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
-        .game-selector select { padding: 10px; font-size: 16px; border-radius: 4px; font-weight: bold; width: 50%; background: #0B132B; color: var(--mrq-gold); border: 1px solid var(--mrq-blue); font-family: 'Rajdhani', sans-serif; }
+        h1, h2, h3 { font-family: 'Orbitron', sans-serif; color: var(--mrq-gold); text-transform: uppercase; letter-spacing: 1px;}
+        
+        .tab-menu { display: flex; border-bottom: 2px solid rgba(255,255,255,0.1); margin-bottom: 25px; }
+        .tab-btn { flex: 1; padding: 12px; cursor: pointer; background: rgba(0,0,0,0.2); border: none; font-size: 15px; font-weight: bold; color: #8b949e; font-family: 'Orbitron', sans-serif; transition: 0.3s; }
+        .tab-btn.active { background: var(--mrq-blue); color: white; border-top: 2px solid var(--mrq-gold); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
-        .public-timer-container { text-align: center; background: #000; padding: 15px; border: 3px solid var(--mrq-gold); border-radius: 12px; margin-bottom: 25px; box-shadow: 0 0 30px rgba(255, 179, 0, 0.2); }
-        .public-timer-display { font-size: 100px; font-family: 'Orbitron', sans-serif; color: var(--mrq-gold); font-weight: 900; line-height: 1;}
-        .public-timer-display.running { color: var(--mrq-green); text-shadow: 0 0 25px rgba(76, 175, 80, 0.6); }
-        .public-timer-display.stopped { color: var(--mrq-red); text-shadow: 0 0 25px rgba(231, 29, 36, 0.6); }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 20px; }
-        th, td { padding: 15px 12px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); vertical-align: middle;}
-        th { background: #0B132B; color: var(--mrq-gold); font-family: 'Orbitron', sans-serif; font-size: 15px; letter-spacing: 1px; }
+        input[type="text"], select { padding: 10px; width: 65%; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; background: #0B132B; color: white; font-family: 'Rajdhani', sans-serif; font-size: 16px;}
+        select { width: 30%; margin-left: 10px; font-weight: bold; color: var(--mrq-gold); }
         
-        .rank-1 { background: rgba(255, 179, 0, 0.15) !important; }
-        .rank-1 td { font-weight: bold; text-shadow: 0 0 5px var(--mrq-gold); }
+        button { padding: 10px 15px; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-family: 'Orbitron', sans-serif; text-transform: uppercase; transition: 0.2s;}
+        button.btn-primary { background: var(--mrq-blue); }
+        button.btn-primary:hover { background: #1976D2; }
+        button.btn-gold { background: var(--mrq-gold); color: black; }
+        button.btn-gold:hover { filter: brightness(1.1); }
+        button.btn-red { background-color: var(--mrq-red); padding: 5px 10px; font-size: 12px; }
+        button.btn-green { background-color: var(--mrq-green); color: white; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4);}
+        button.btn-manage { background-color: #f39c12; padding: 5px 10px; font-size: 12px; color: black; }
+        button.btn-restart { background-color: #9e58cc; padding: 5px 10px; font-size: 12px; }
         
-        .team-name { font-weight: bold; text-align: left; padding-left: 20px; font-size: 1.2em; color: white;}
-        .pts-box { font-size: 1.3em; font-weight: bold; color: var(--mrq-blue); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 18px;}
+        td, th { padding: 12px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        th { background: #0B132B; color: var(--mrq-gold); font-family: 'Orbitron', sans-serif; font-size: 14px;}
+        .team-name { font-weight: bold; text-align: left; padding-left: 15px; color: white;}
         
-        .status-badge { padding: 5px 10px; border-radius: 4px; font-size: 16px; font-weight: bold; font-family: 'Orbitron', sans-serif;}
-        .status-playing { color: var(--mrq-blue); animation: pulse 1.5s infinite; }
-        .status-done { color: var(--mrq-green); }
-        .status-dnf { color: var(--mrq-red); }
+        .timer-container { text-align: center; background: #0B132B; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid var(--mrq-gold); }
+        .timer-display { font-size: 70px; font-family: 'Orbitron', sans-serif; color: var(--mrq-gold); font-weight: 900; line-height: 1;}
+        .timer-display.running { color: var(--mrq-green); text-shadow: 0 0 15px rgba(76, 175, 80, 0.5); }
+        .timer-display.stopped { color: var(--mrq-red); }
+        
+        .status-badge { padding: 5px 10px; border-radius: 4px; font-size: 14px; font-weight: bold; font-family: 'Orbitron', sans-serif;}
+        .status-idle { background: #555; color: white; }
+        .status-playing { background: var(--mrq-blue); color: white; animation: pulse 1.5s infinite; }
+        .status-done { background: var(--mrq-green); color: white; }
+        .status-dnf { background: var(--mrq-red); color: white; }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* MODAL CSS */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-box { background: var(--mrq-panel); padding: 40px; border-radius: 12px; border: 3px solid var(--mrq-gold); text-align: center; max-width: 600px; box-shadow: 0 0 30px rgba(255, 179, 0, 0.3); }
+        .modal-box h2 { font-size: 32px; color: var(--mrq-gold); margin-top: 0; margin-bottom: 5px; }
+        .modal-box p { font-size: 16px; color: #c9d1d9; margin-bottom: 30px; }
     </style>
 </head>
-<body>
+<body id="adminBody">
+
+<div class="modal-overlay" id="endRoundModal">
+    <div class="modal-box">
+        <h2>CALCULATE SCORES</h2>
+        <p>Confirm action for this round. NC teams will receive 0 Points & Max Time unless an NC Round is started to let them fix their build.</p>
+        
+        <button id="btnStartNCRound" class="btn-primary" style="width: 100%; margin-bottom: 15px; padding: 15px; font-size: 16px; display: none;" onclick="handleModalAction('nc_round')">
+            START NC ROUND (Resume timer for NC teams)
+        </button>
+        
+        <button class="btn-green" style="width: 100%; margin-bottom: 15px; padding: 15px; font-size: 16px;" onclick="handleModalAction('next')">
+            STOP & NEXT ROUND (Calculate Points)
+        </button>
+        
+        <button class="btn-red" style="width: 100%; padding: 15px; font-size: 16px;" onclick="handleModalAction('end')">
+            STOP & END EVENT (Calculate Final Scores)
+        </button>
+        
+        <button style="background: transparent; border: 1px solid #555; width: 100%; padding: 10px; margin-top: 15px; color: #8b949e;" onclick="document.getElementById('endRoundModal').style.display='none'">CANCEL (Return to Judging)</button>
+    </div>
+</div>
 
 <div class="container">
-    <div class="header-links"><a href="admin.html">[ ADMIN TERMINAL ]</a></div>
-    
-    <div style="text-align: center; margin-bottom: 10px;">
-        <img src="image_5e2713.png" alt="MakeReqa Logo" style="max-width: 350px;">
-        <div style="font-family: 'Orbitron', sans-serif; font-size: 16px; color: #8b949e; letter-spacing: 2px; margin-top: 10px;">LIVE TOURNAMENT FEED</div>
+    <div class="header-panel">
+        <img src="image_5e2713.png" alt="MakeReqa Logo">
+        <div class="header-controls">
+            <a href="index.html" target="_blank">[ LAUNCH PUBLIC VIEWER ]</a>
+            <button class="btn-red" onclick="logout()">LOGOUT</button>
+        </div>
     </div>
     
-    <div class="game-selector">
-        <select id="publicGameSelect" onchange="loadSelectedGame()"><option>INITIALIZING...</option></select>
+    <div class="tab-menu">
+        <button id="tabBtn0" class="tab-btn active" onclick="switchTab('gamesTab', this)">SYSTEMS</button>
+        <button id="tabBtn1" class="tab-btn" onclick="switchTab('teamsTab', this)">TEAMS</button>
+        <button id="tabBtn2" class="tab-btn" onclick="switchTab('roundsTab', this)">MATCH ROUND</button>
     </div>
 
-    <!-- PUBLIC MATCH TIMER -->
-    <div id="publicTimerUI" class="public-timer-container" style="display:none;">
-        <div id="pubRoundHeader" style="color: white; font-size: 18px; font-weight: bold; letter-spacing: 4px; font-family: 'Orbitron', sans-serif; margin-bottom: 5px;">ROUND <span id="pubRoundText"></span> TIMER</div>
-        <div id="publicTimeClock" class="public-timer-display">00:00.0</div>
+    <div id="gamesTab" class="tab-content active">
+        <h3>INITIALIZE NEW EVENT</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <input type="text" id="gameName" placeholder="e.g., Makereqa Finals" style="width: 60%;">
+            <select id="gameDuration" style="width: 40%;">
+                <option value="1">1 MINUTE BUILD</option>
+                <option value="3">3 MINUTE BUILD</option>
+                <option value="5" selected>5 MINUTE BUILD</option>
+                <option value="10">10 MINUTE BUILD</option>
+            </select>
+        </div>
+        <button class="btn-primary" onclick="createGame()">CREATE EVENT</button>
+
+        <h3 style="margin-top: 40px;">YOUR EVENTS</h3>
+        <table>
+            <thead><tr><th>EVENT NAME</th><th>ACTION</th></tr></thead>
+            <tbody id="games-list-body"></tbody>
+        </table>
     </div>
-    
-    <div style="display:flex; gap:20px;">
-        <div style="flex:1;">
-            <h3 style="color: var(--mrq-blue); border-bottom: 2px solid var(--mrq-blue); padding-bottom:10px;">OVERALL LEADERBOARD</h3>
-            <p style="text-align: center; font-size: 14px; color: #8b949e; margin-top: -5px;">RANKED BY: POINTS ➔ FASTEST TOTAL TIME</p>
-            <table>
-                <thead><tr><th>RANK</th><th>TEAM</th><th>POINTS</th><th>TOTAL TIME</th></tr></thead>
-                <tbody id="leaderboard-body"><tr><td colspan="4">AWAITING DATA...</td></tr></tbody>
-            </table>
+
+    <div id="teamsTab" class="tab-content">
+        <h3 id="targetGameLabel" style="color: var(--mrq-blue);">TARGET EVENT: NONE</h3>
+        <div id="teamSetupControls">
+            <h3>REGISTER PARTICIPANT/TEAM</h3>
+            <input type="text" id="teamName" placeholder="Enter Team Name">
+            <button class="btn-primary" onclick="addTeam()">REGISTER</button>
+        </div>
+        <h3 style="margin-top: 30px;">ROSTER (<span id="teamCount">0</span>)</h3>
+        <table>
+            <thead><tr><th>TEAM NAME</th><th>TOTAL PTS</th><th>TOTAL TIME</th><th>ACTION</th></tr></thead>
+            <tbody id="teams-list-body"></tbody>
+        </table>
+        <button id="lockRosterBtn" class="btn-green" onclick="lockTeamsAndProceed()" style="width: 100%; margin-top: 25px; padding: 15px; font-size: 18px;">[ LOCK ROSTER & START MATCH ]</button>
+    </div>
+
+    <div id="roundsTab" class="tab-content">
+        <div id="masterTimerUI" class="timer-container">
+            <div style="color: white; font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 5px;">ROUND <span id="roundCounterDisplay">1</span> TIMER</div>
+            <div id="timeClock" class="timer-display">00:00.0</div>
+            <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;" id="timerControlsBox">
+                <button class="btn-green" style="padding: 15px 30px; font-size: 18px;" onclick="startRound()">START BUILD ROUND</button>
+            </div>
         </div>
 
-        <div style="flex:1;" id="liveRoundSection">
-            <h3 style="color: var(--mrq-gold); border-bottom: 2px solid var(--mrq-gold); padding-bottom:10px;">LIVE ROUND STATUS</h3>
-            <p style="text-align: center; font-size: 14px; color: #8b949e; margin-top: -5px;">AWAITING ROUND START</p>
-            <table>
-                <thead><tr><th>TEAM</th><th>STATUS / TIME</th></tr></thead>
-                <tbody id="live-status-body"><tr><td colspan="2">AWAITING DATA...</td></tr></tbody>
-            </table>
-        </div>
+        <h3>LIVE BUILD STATUS</h3>
+        <table>
+            <thead><tr><th>TEAM</th><th>STATUS / TIME</th><th>ACTION</th></tr></thead>
+            <tbody id="live-round-body"></tbody>
+        </table>
     </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, doc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const SUPER_ADMIN_UID = "PmZflg1ZBxSR0ZXTrvjma2RMwYB2"; 
 
   const firebaseConfig = {
     apiKey: "AIzaSyCcX-3R3eMR5wu1igI6fz3XiqeldiN4n68",
@@ -105,28 +179,41 @@
   };
 
   const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
   const db = getFirestore(app);
 
-  let unsubGameDoc = null;
+  const POINTS_SYSTEM = [10, 8, 6, 4, 3, 2, 1]; 
+
+  let currentGameId = null;
+  let currentTeamsList = [];
+  let allGamesData = {}; 
+  let localTimerInterval = null;
+  let currentTimerState = ''; 
+  let audioCtx = null;
+  let isAutoEnding = false;
+  
+  let unsubGames = null;
   let unsubTeams = null;
 
-  let audioCtx = null;
   function getAudioCtx() {
-      if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+      if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
       return audioCtx;
   }
-  document.addEventListener('click', () => { if(getAudioCtx() && audioCtx.state === 'suspended') audioCtx.resume(); }, { once: true });
-
   function playSound(type) {
-      const ctx = getAudioCtx(); if (!ctx) return;
+      const ctx = getAudioCtx();
+      if (!ctx) return;
       if (ctx.state === 'suspended') ctx.resume();
       const osc = ctx.createOscillator(); const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
-
       if (type === 'start') {
           osc.type = 'square'; osc.frequency.setValueAtTime(600, ctx.currentTime);
           gain.gain.setValueAtTime(0.1, ctx.currentTime);
           osc.start(); osc.stop(ctx.currentTime + 0.8);
+      } else if (type === 'done') {
+          osc.type = 'sine'; osc.frequency.setValueAtTime(1200, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(1800, ctx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          osc.start(); osc.stop(ctx.currentTime + 0.2);
       } else if (type === 'end') {
           osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, ctx.currentTime);
           gain.gain.setValueAtTime(0.2, ctx.currentTime);
@@ -143,141 +230,521 @@
       return `${m}:${s}.${dec}`;
   }
 
-  let localTimerInterval = null;
-  let endSoundPlayed = false;
-  let currentTimerState = ''; 
+  onAuthStateChanged(auth, user => {
+    if (user) {
+        document.getElementById("adminBody").style.display = "block";
+        loadUserGames(user); 
+    } else {
+        window.location.href = "login.html"; 
+    }
+  });
 
-  async function loadGamesList() {
-      const selectElement = document.getElementById("publicGameSelect");
-      const gamesSnap = await getDocs(collection(db, "mrq_games"));
-      selectElement.innerHTML = "";
-      if(gamesSnap.empty) return selectElement.innerHTML = "<option>NO EVENTS FOUND</option>";
+  window.logout = () => signOut(auth).then(() => window.location.href = "login.html");
 
-      gamesSnap.forEach(documentDoc => { 
-          selectElement.innerHTML += `<option value="${documentDoc.id}">${documentDoc.data().name}</option>`; 
+  function loadUserGames(user) {
+      let qGames = (user.uid === SUPER_ADMIN_UID) 
+          ? query(collection(db, "mrq_games")) 
+          : query(collection(db, "mrq_games"), where("createdBy", "==", user.uid)); 
+      
+      unsubGames = onSnapshot(qGames, (snapshot) => {
+          const tbody = document.getElementById("games-list-body");
+          tbody.innerHTML = "";
+          allGamesData = {};
+
+          snapshot.forEach(docSnap => {
+              const game = docSnap.data();
+              allGamesData[docSnap.id] = game;
+              tbody.innerHTML += `
+                  <tr>
+                      <td style="font-weight: bold; text-align: left; padding-left: 15px;">${game.name}</td>
+                      <td>
+                          <button class="btn-primary" style="padding: 5px 10px; font-size:12px;" onclick="selectGame('${docSnap.id}')">SELECT</button>
+                          <button class="btn-restart" onclick="rebootGame('${docSnap.id}', '${game.name}')">REBOOT</button>
+                          <button class="btn-red" onclick="deleteGame('${docSnap.id}', '${game.name}')">DEL</button>
+                      </td>
+                  </tr>
+              `;
+          });
+
+          if(currentGameId && allGamesData[currentGameId]) {
+              applyRosterLockUI(allGamesData[currentGameId]);
+              renderTimerAndRoundUI(allGamesData[currentGameId]); 
+          }
       });
-      loadSelectedGame();
   }
-  loadGamesList();
 
-  window.loadSelectedGame = function() {
-      const gameId = document.getElementById("publicGameSelect").value;
-      if(!gameId || gameId === "NO EVENTS FOUND") return;
+  window.switchTab = function(tabId, btnElement) {
+    if ((tabId === 'teamsTab' || tabId === 'roundsTab') && !currentGameId) {
+        return alert("Please SELECT an event first.");
+    }
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    btnElement.classList.add('active');
+  };
 
+  window.createGame = async function() {
+      const name = document.getElementById("gameName").value.trim();
+      const durationMins = parseInt(document.getElementById("gameDuration").value);
+      if(!name) return;
+      
+      await addDoc(collection(db, "mrq_games"), { 
+          name: name, 
+          createdBy: auth.currentUser.uid,
+          timerDurationMs: durationMins * 60 * 1000,
+          roundState: 'idle', 
+          roundStartTime: 0,
+          pausedElapsed: 0, 
+          currentRound: 1,
+          rosterLocked: false,
+          ncRoundActive: false,
+          ncRoundStartTime: 0
+      });
+      document.getElementById("gameName").value = "";
+  };
+
+  window.deleteGame = async function(id, name) {
+      if(confirm(`Delete entire event: "${name}"?`)) {
+          if(currentGameId === id) currentGameId = null;
+          await deleteDoc(doc(db, "mrq_games", id));
+      }
+  };
+
+  window.rebootGame = async function(id, name) {
+      if(!confirm(`⚠️ SYSTEM REBOOT: "${name}"?\nThis will reset the event back to Round 1, unlock the roster, and reset all scores to zero. Teams will remain registered. PROCEED?`)) return;
+      
+      await updateDoc(doc(db, "mrq_games", id), { 
+          roundState: 'idle',
+          currentRound: 1,
+          rosterLocked: false,
+          roundStartTime: 0,
+          pausedElapsed: 0,
+          ncRoundActive: false,
+          ncRoundStartTime: 0
+      });
+
+      const teamsSnap = await getDocs(collection(db, "mrq_games", id, "mrq_teams"));
+      const teamPromises = [];
+      teamsSnap.forEach(teamDoc => { 
+          teamPromises.push(updateDoc(doc(db, "mrq_games", id, "mrq_teams", teamDoc.id), { 
+              totalPoints: 0, 
+              totalTimeMs: 0,
+              currentRoundStatus: 'idle',
+              currentRoundTimeMs: 0,
+              ncBaseTime: 0,
+              isLockedForNC: false
+          })); 
+      });
+      await Promise.all(teamPromises);
+      
+      alert(`EVENT REBOOTED: "${name}"`);
+      if (currentGameId === id) selectGame(id);
+  };
+
+  window.selectGame = function(id) {
+      currentGameId = id;
+      const game = allGamesData[id];
+      document.getElementById("targetGameLabel").innerText = `TARGET EVENT: ${game.name}`;
+      
       currentTimerState = '';
       clearInterval(localTimerInterval);
 
-      if(unsubGameDoc) unsubGameDoc();
       if(unsubTeams) unsubTeams();
+      
+      unsubTeams = onSnapshot(collection(db, "mrq_games", currentGameId, "mrq_teams"), (snapshot) => {
+          currentTeamsList = [];
+          snapshot.forEach(d => currentTeamsList.push({ id: d.id, ...d.data() }));
+          renderTeamsList();
+          renderTimerAndRoundUI(allGamesData[currentGameId]);
 
-      unsubGameDoc = onSnapshot(doc(db, "mrq_games", gameId), (docSnap) => {
-          if (docSnap.exists()) {
-              const game = docSnap.data();
-              document.getElementById("publicTimerUI").style.display = "block";
-              document.getElementById("pubRoundText").innerText = game.currentRound;
-              const display = document.getElementById("publicTimeClock");
-              const header = document.getElementById("pubRoundHeader");
-
-              if (game.roundState === 'idle') {
-                  if (currentTimerState !== 'idle') {
-                      clearInterval(localTimerInterval);
-                      header.innerHTML = `ROUND <span id="pubRoundText">${game.currentRound}</span> TIMER`;
-                      display.style.fontSize = "100px";
-                      display.innerText = formatTime(game.timerDurationMs);
-                      display.className = 'public-timer-display';
-                      endSoundPlayed = false;
-                      currentTimerState = 'idle';
-                  }
-              } 
-              else if (game.roundState === 'running') {
-                  if (currentTimerState !== 'running') {
-                      clearInterval(localTimerInterval);
-                      header.innerHTML = `ROUND <span id="pubRoundText">${game.currentRound}</span> TIMER`;
-                      display.style.fontSize = "100px";
-                      display.className = 'public-timer-display running';
-                      if (!endSoundPlayed) playSound('start');
-                      
-                      localTimerInterval = setInterval(() => {
-                          let elapsed = Date.now() - game.roundStartTime;
-                          let remaining = game.timerDurationMs - elapsed;
-                          
-                          if (remaining <= 0) {
-                              clearInterval(localTimerInterval);
-                              display.innerText = "00:00.0";
-                              display.className = 'public-timer-display stopped';
-                              if (!endSoundPlayed) { playSound('end'); endSoundPlayed = true; }
-                          } else {
-                              display.innerText = formatTime(remaining);
-                          }
-                      }, 50);
-                      currentTimerState = 'running';
-                  }
-              }
-              else if (game.roundState === 'ended') {
-                  if (currentTimerState !== 'ended') {
-                      clearInterval(localTimerInterval);
-                      header.innerHTML = `ROUND <span id="pubRoundText">${game.currentRound}</span> JUDGING PHASE`;
-                      display.style.fontSize = "100px";
-                      
-                      // Show exact stopped time on public screen
-                      let remaining = game.timerDurationMs - game.pausedElapsed;
-                      display.innerText = formatTime(remaining > 0 ? remaining : 0);
-                      
-                      display.className = 'public-timer-display stopped';
-                      currentTimerState = 'ended';
-                  }
-              }
-              else if (game.roundState === 'finished') {
-                  if (currentTimerState !== 'finished') {
-                      clearInterval(localTimerInterval);
-                      header.innerHTML = "SYSTEM LOCKED";
-                      display.innerText = "EVENT FINISHED";
-                      display.style.fontSize = "65px";
-                      display.className = 'public-timer-display stopped';
-                      currentTimerState = 'finished';
-                  }
+          // Auto Stop Check
+          const activeGame = allGamesData[currentGameId];
+          if (activeGame && activeGame.roundState === 'running' && currentTeamsList.length > 0) {
+              const nobodyPlaying = currentTeamsList.every(t => t.currentRoundStatus !== 'playing');
+              if (nobodyPlaying && !isAutoEnding) {
+                  triggerAutoEndRound();
               }
           }
       });
 
-      unsubTeams = onSnapshot(collection(db, "mrq_games", gameId, "mrq_teams"), (snapshot) => {
-        let teams = [];
-        snapshot.forEach(d => teams.push({ id: d.id, ...d.data() }));
+      switchTab('teamsTab', document.getElementById('tabBtn1'));
+  };
 
-        let sortedLeaderboard = [...teams].sort((a, b) => {
-            if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
-            return a.totalTimeMs - b.totalTimeMs; 
-        });
+  function applyRosterLockUI(game) {
+      const lockBtn = document.getElementById("lockRosterBtn");
+      const setupControls = document.getElementById("teamSetupControls");
+      
+      if (!lockBtn || !setupControls) return;
 
-        const lBody = document.getElementById("leaderboard-body");
-        lBody.innerHTML = ""; 
-        sortedLeaderboard.forEach((team, index) => {
-          lBody.innerHTML += `
-            <tr class="${index === 0 && (team.totalPoints > 0) ? 'rank-1' : ''}">
-              <td style="font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 1.2em;">${index + 1}</td>
+      if (game.rosterLocked) {
+          setupControls.style.display = "none";
+          lockBtn.innerText = "[ ROSTER LOCKED - PROCEED TO MATCH ]";
+          lockBtn.className = "btn-gold";
+          lockBtn.onclick = () => switchTab('roundsTab', document.getElementById('tabBtn2'));
+      } else {
+          setupControls.style.display = "block";
+          lockBtn.innerText = "[ LOCK ROSTER & START MATCH ]";
+          lockBtn.className = "btn-green";
+          lockBtn.onclick = lockTeamsAndProceed;
+      }
+  }
+
+  window.lockTeamsAndProceed = async function() {
+      if(currentTeamsList.length === 0) return alert("Please register at least 1 team first.");
+      if(confirm("Lock Roster and proceed to the Match Dashboard?\nYou will not be able to add or delete teams unless you Reboot the event.")) {
+          await updateDoc(doc(db, "mrq_games", currentGameId), { rosterLocked: true });
+          switchTab('roundsTab', document.getElementById('tabBtn2'));
+      }
+  };
+
+  function renderTeamsList() {
+      const game = allGamesData[currentGameId] || {};
+      document.getElementById("teamCount").innerText = currentTeamsList.length;
+      const tbody = document.getElementById("teams-list-body");
+      let htmlString = "";
+      
+      let sortedRoster = [...currentTeamsList].sort((a,b) => {
+          if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+          return a.totalTimeMs - b.totalTimeMs;
+      });
+
+      sortedRoster.forEach(team => {
+          const actionHtml = game.rosterLocked 
+              ? `<span style="color:#6e7681; font-weight:bold;">LOCKED</span>` 
+              : `<button class="btn-red" onclick="deleteTeam('${team.id}', '${team.name}')">DEL</button>`;
+
+          htmlString += `<tr>
+              <td style="text-align: left; padding-left: 15px; font-weight: bold;">${team.name}</td>
+              <td style="color: var(--mrq-gold); font-weight:bold;">${team.totalPoints}</td>
+              <td>${formatTime(team.totalTimeMs)}</td>
+              <td>${actionHtml}</td>
+          </tr>`;
+      });
+      tbody.innerHTML = htmlString;
+  }
+
+  window.addTeam = async function() {
+      const name = document.getElementById("teamName").value.trim();
+      if(!name || !currentGameId) return;
+      await addDoc(collection(db, "mrq_games", currentGameId, "mrq_teams"), { 
+          name: name, 
+          totalPoints: 0, 
+          totalTimeMs: 0,
+          currentRoundStatus: 'idle', 
+          currentRoundTimeMs: 0,
+          ncBaseTime: 0,
+          isLockedForNC: false
+      });
+      document.getElementById("teamName").value = ""; 
+  };
+
+  document.getElementById("teamName").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") { e.preventDefault(); window.addTeam(); }
+  });
+
+  window.deleteTeam = async function(id, name) {
+      if(confirm(`Delete Team: ${name}?`)) await deleteDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", id));
+  };
+
+
+  function renderTimerAndRoundUI(game) {
+      if(!game) return;
+      const display = document.getElementById("timeClock");
+      document.getElementById("roundCounterDisplay").innerText = game.currentRound;
+      
+      const controlsBox = document.getElementById("timerControlsBox");
+      const tbody = document.getElementById("live-round-body");
+
+      let htmlString = "";
+      currentTeamsList.forEach(team => {
+          let statusHtml = "";
+          let actionHtml = "";
+
+          if (game.roundState === 'idle') {
+              statusHtml = `<span class="status-badge status-idle">WAITING</span>`;
+              actionHtml = `<span style="color:#555;">-</span>`;
+          } 
+          else if (game.roundState === 'running') {
+              if (team.currentRoundStatus === 'done') {
+                  statusHtml = `<span class="status-badge status-done">${formatTime(team.currentRoundTimeMs)}</span>`;
+                  if (team.isLockedForNC) {
+                      actionHtml = `<span style="color:#6e7681; font-weight:bold;">LOCKED (NON-NC)</span>`;
+                  } else {
+                      actionHtml = `
+                        <span style="color:var(--mrq-green); font-weight:bold; margin-right:15px;">FINISHED</span>
+                        <button class="btn-red" style="padding:5px 10px; border:2px solid white;" onclick="markTeamNC('${team.id}')">NC</button>
+                      `;
+                  }
+              } else if (team.currentRoundStatus === 'nc') {
+                  statusHtml = `<span class="status-badge status-dnf">MARKED NC</span>`;
+                  actionHtml = `<span style="color:#555;">WAITING</span>`;
+              } else {
+                  statusHtml = `<span class="status-badge status-playing">BUILDING...</span>`;
+                  actionHtml = `<button class="btn-primary" style="padding: 10px 20px; font-size:16px; background:var(--mrq-gold); color:black;" onclick="markTeamDone('${team.id}')">DONE!</button>`;
+              }
+          } 
+          else if (game.roundState === 'ended') { 
+              if (team.currentRoundStatus === 'done') {
+                  statusHtml = `<span class="status-badge status-done">${formatTime(team.currentRoundTimeMs)}</span>`;
+                  if (team.isLockedForNC) {
+                      actionHtml = `<span style="color:#6e7681; font-weight:bold;">LOCKED (NON-NC)</span>`;
+                  } else {
+                      actionHtml = `<button class="btn-red" style="padding:5px 15px;" onclick="markTeamNC('${team.id}')">MARK NC</button>`;
+                  }
+              } else if (team.currentRoundStatus === 'nc') {
+                  statusHtml = `<span class="status-badge status-dnf">MARKED NC</span>`;
+                  actionHtml = `<button class="btn-manage" style="padding:5px 15px;" onclick="undoTeamNC('${team.id}')">UNDO</button>`;
+              } else {
+                  statusHtml = `<span class="status-badge status-dnf">TIME UP (DNF)</span>`;
+                  actionHtml = `<span style="color:#555;">LOCKED</span>`;
+              }
+          }
+          else if (game.roundState === 'finished') {
+              if (team.currentRoundStatus === 'done') {
+                  statusHtml = `<span class="status-badge status-done">${formatTime(team.currentRoundTimeMs)}</span>`;
+              } else {
+                  statusHtml = `<span class="status-badge status-dnf">LOCKED</span>`;
+              }
+              actionHtml = `<span style="color:#555;">LOCKED</span>`;
+          }
+
+          htmlString += `<tr>
               <td class="team-name">${team.name}</td>
-              <td class="pts-box">${team.totalPoints}</td>
-              <td style="font-family: 'Orbitron', sans-serif; font-weight: bold;">${formatTime(team.totalTimeMs)}</td>
-            </tr>`;
-        });
+              <td>${statusHtml}</td>
+              <td>${actionHtml}</td>
+          </tr>`;
+      });
+      tbody.innerHTML = htmlString;
 
-        const sBody = document.getElementById("live-status-body");
-        sBody.innerHTML = "";
-        teams.forEach(team => {
-            let statusHtml = "";
-            if (team.currentRoundStatus === 'idle') statusHtml = `<span style="color:#555;">WAITING</span>`;
-            else if (team.currentRoundStatus === 'playing') statusHtml = `<span class="status-badge status-playing">BUILDING...</span>`;
-            else if (team.currentRoundStatus === 'done') statusHtml = `<span class="status-badge status-done">${formatTime(team.currentRoundTimeMs)}</span>`;
-            else if (team.currentRoundStatus === 'nc') statusHtml = `<span class="status-badge status-dnf">MARKING NC</span>`;
-            
-            sBody.innerHTML += `<tr>
-                <td class="team-name">${team.name}</td>
-                <td>${statusHtml}</td>
-            </tr>`;
-        });
+      // Timer Rendering Logic
+      if (game.roundState === 'idle') {
+          if (currentTimerState !== 'idle') {
+              clearInterval(localTimerInterval);
+              display.style.fontSize = "70px";
+              display.innerText = formatTime(game.timerDurationMs);
+              display.className = 'timer-display';
+              controlsBox.innerHTML = `<button class="btn-green" style="padding: 15px 30px; font-size: 18px;" onclick="startRound()">START BUILD ROUND</button>`;
+              currentTimerState = 'idle';
+          }
+      } 
+      else if (game.roundState === 'running') {
+          if (currentTimerState !== 'running') {
+              clearInterval(localTimerInterval);
+              display.style.fontSize = "70px";
+              display.className = 'timer-display running';
+              controlsBox.innerHTML = `<button class="btn-red" onclick="forceEndRound()">STOP ROUND (TIME UP)</button>`;
+              
+              localTimerInterval = setInterval(() => {
+                  let elapsed = Date.now() - game.roundStartTime;
+                  let remaining = game.timerDurationMs - elapsed;
+                  
+                  if (remaining <= 0) {
+                      clearInterval(localTimerInterval);
+                      display.innerText = "00:00.0";
+                      display.className = 'timer-display stopped';
+                      triggerAutoEndRound(); 
+                  } else {
+                      display.innerText = formatTime(remaining);
+                  }
+              }, 50);
+              currentTimerState = 'running';
+          }
+      }
+      else if (game.roundState === 'ended') {
+          if (currentTimerState !== 'ended') {
+              clearInterval(localTimerInterval);
+              display.style.fontSize = "70px";
+              
+              let remaining = game.timerDurationMs - game.pausedElapsed;
+              display.innerText = formatTime(remaining > 0 ? remaining : 0);
+              display.className = 'timer-display stopped';
+              
+              controlsBox.innerHTML = `
+                  <button class="btn-gold" style="width:auto; margin-top:0; padding:15px 30px; font-size:18px;" onclick="openEndRoundModal()">
+                      FINISH ROUND & CALCULATE SCORES
+                  </button>`;
+              currentTimerState = 'ended';
+          }
+      }
+      else if (game.roundState === 'finished') {
+          if (currentTimerState !== 'finished') {
+              clearInterval(localTimerInterval);
+              display.innerText = "EVENT FINISHED";
+              display.style.fontSize = "50px";
+              display.className = 'timer-display stopped';
+              controlsBox.innerHTML = `<span style="color:var(--mrq-gold); font-weight:bold; font-size: 20px;">ALL ROUNDS COMPLETED. SCORES LOCKED.</span>`;
+              currentTimerState = 'finished';
+          }
+      }
+  }
+
+  window.startRound = async function() {
+      if(currentTeamsList.length === 0) return alert("Add teams first.");
+      playSound('start');
+      
+      const teamPromises = currentTeamsList.map(t => 
+          updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", t.id), { 
+              currentRoundStatus: 'playing', 
+              currentRoundTimeMs: 0,
+              ncBaseTime: 0,
+              isLockedForNC: false 
+          })
+      );
+      await Promise.all(teamPromises);
+
+      await updateDoc(doc(db, "mrq_games", currentGameId), { 
+          roundState: 'running', 
+          roundStartTime: Date.now(),
+          pausedElapsed: 0,
+          ncRoundActive: false
       });
   };
-</script>
 
+  window.markTeamDone = async function(teamId) {
+      const game = allGamesData[currentGameId];
+      if(game.roundState !== 'running') return;
+      
+      playSound('done');
+      const team = currentTeamsList.find(t => t.id === teamId);
+      
+      let finalTime = 0;
+      if (game.ncRoundActive) {
+          let timeSpentInNC = Date.now() - game.ncRoundStartTime;
+          finalTime = (team.ncBaseTime || 0) + timeSpentInNC;
+      } else {
+          finalTime = Date.now() - game.roundStartTime;
+      }
+      
+      await updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamId), { 
+          currentRoundStatus: 'done', 
+          currentRoundTimeMs: finalTime 
+      });
+  };
+
+  window.markTeamNC = async function(teamId) {
+      const team = currentTeamsList.find(t => t.id === teamId);
+      if(!team || team.isLockedForNC) return; // Backend protection
+
+      await updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamId), { 
+          currentRoundStatus: 'nc' 
+      });
+  };
+  window.undoTeamNC = async function(teamId) {
+      await updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamId), { 
+          currentRoundStatus: 'done' 
+      });
+  };
+
+  async function triggerAutoEndRound() {
+      if(isAutoEnding) return;
+      isAutoEnding = true;
+      playSound('end');
+      
+      const game = allGamesData[currentGameId];
+      let elapsed = Date.now() - game.roundStartTime;
+      if (elapsed > game.timerDurationMs) elapsed = game.timerDurationMs;
+
+      await updateDoc(doc(db, "mrq_games", currentGameId), { 
+          roundState: 'ended',
+          pausedElapsed: elapsed
+      });
+      isAutoEnding = false;
+  }
+
+  window.forceEndRound = async function() {
+      if(!confirm("Stop the round right now for all teams?")) return;
+      triggerAutoEndRound();
+  };
+
+  window.openEndRoundModal = function() {
+      const hasNC = currentTeamsList.some(t => t.currentRoundStatus === 'nc');
+      document.getElementById('btnStartNCRound').style.display = hasNC ? 'block' : 'none';
+      document.getElementById('endRoundModal').style.display = 'flex';
+  };
+
+  window.handleModalAction = async function(action) {
+      document.getElementById('endRoundModal').style.display = 'none';
+      const game = allGamesData[currentGameId];
+      
+      if (action === 'nc_round') {
+          const validTeams = currentTeamsList.filter(t => t.currentRoundStatus === 'done');
+          let maxValidTime = game.pausedElapsed;
+          if (validTeams.length > 0) {
+              maxValidTime = Math.max(...validTeams.map(t => t.currentRoundTimeMs));
+          }
+          
+          // Lock correctly finished teams
+          const validPromises = validTeams.map(t => 
+              updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", t.id), { 
+                  isLockedForNC: true
+              })
+          );
+
+          // Revert NC teams to playing
+          const ncTeams = currentTeamsList.filter(t => t.currentRoundStatus === 'nc');
+          const ncPromises = ncTeams.map(t => 
+              updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", t.id), { 
+                  currentRoundStatus: 'playing',
+                  ncBaseTime: maxValidTime
+              })
+          );
+          
+          await Promise.all([...validPromises, ...ncPromises]);
+
+          await updateDoc(doc(db, "mrq_games", currentGameId), { 
+              roundState: 'running',
+              roundStartTime: Date.now() - game.pausedElapsed,
+              ncRoundActive: true,
+              ncRoundStartTime: Date.now()
+          });
+          return;
+      }
+
+      // Action 'next' or 'end': Calculate strict points
+      let validTeams = currentTeamsList.filter(t => t.currentRoundStatus === 'done');
+      validTeams.sort((a,b) => a.currentRoundTimeMs - b.currentRoundTimeMs);
+      
+      let invalidTeams = currentTeamsList.filter(t => t.currentRoundStatus !== 'done'); // NC or DNF
+
+      let validPromises = validTeams.map((teamData, index) => {
+          let pointsEarned = index < POINTS_SYSTEM.length ? POINTS_SYSTEM[index] : 0;
+          return updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamData.id), { 
+              totalPoints: teamData.totalPoints + pointsEarned,
+              totalTimeMs: teamData.totalTimeMs + teamData.currentRoundTimeMs,
+              currentRoundStatus: 'idle',
+              currentRoundTimeMs: 0,
+              ncBaseTime: 0,
+              isLockedForNC: false // Reset lock
+          });
+      });
+
+      let invalidPromises = invalidTeams.map(teamData => {
+          return updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamData.id), { 
+              totalPoints: teamData.totalPoints + 0, 
+              totalTimeMs: teamData.totalTimeMs + game.timerDurationMs,
+              currentRoundStatus: 'idle',
+              currentRoundTimeMs: 0,
+              ncBaseTime: 0,
+              isLockedForNC: false // Reset lock
+          });
+      });
+
+      await Promise.all([...validPromises, ...invalidPromises]);
+
+      if (action === 'next') {
+          await updateDoc(doc(db, "mrq_games", currentGameId), { 
+              roundState: 'idle',
+              currentRound: game.currentRound + 1,
+              pausedElapsed: 0,
+              ncRoundActive: false
+          });
+      } else if (action === 'end') {
+          await updateDoc(doc(db, "mrq_games", currentGameId), { 
+              roundState: 'finished'
+          });
+      }
+  };
+
+</script>
 </body>
 </html>
