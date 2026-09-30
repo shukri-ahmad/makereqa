@@ -145,6 +145,7 @@
 
   let localTimerInterval = null;
   let endSoundPlayed = false;
+  let currentTimerState = ''; // Fixed glitch prevention tracker
 
   async function loadGamesList() {
       const selectElement = document.getElementById("publicGameSelect");
@@ -163,6 +164,9 @@
       const gameId = document.getElementById("publicGameSelect").value;
       if(!gameId || gameId === "NO EVENTS FOUND") return;
 
+      currentTimerState = '';
+      clearInterval(localTimerInterval);
+
       if(unsubGameDoc) unsubGameDoc();
       if(unsubTeams) unsubTeams();
 
@@ -173,42 +177,57 @@
               document.getElementById("pubRoundText").innerText = game.currentRound;
               const display = document.getElementById("publicTimeClock");
 
-              clearInterval(localTimerInterval);
-              
+              // --- FIXED PUBLIC TIMER ENGINE ---
               if (game.roundState === 'idle') {
-                  display.style.fontSize = "100px";
-                  display.innerText = formatTime(game.timerDurationMs);
-                  display.className = 'public-timer-display';
-                  endSoundPlayed = false;
+                  if (currentTimerState !== 'idle') {
+                      clearInterval(localTimerInterval);
+                      display.style.fontSize = "100px";
+                      display.innerText = formatTime(game.timerDurationMs);
+                      display.className = 'public-timer-display';
+                      endSoundPlayed = false;
+                      currentTimerState = 'idle';
+                  }
               } 
               else if (game.roundState === 'running') {
-                  display.style.fontSize = "100px";
-                  display.className = 'public-timer-display running';
-                  if (!localTimerInterval && !endSoundPlayed) playSound('start');
-                  
-                  localTimerInterval = setInterval(() => {
-                      let elapsed = Date.now() - game.roundStartTime;
-                      let remaining = game.timerDurationMs - elapsed;
+                  if (currentTimerState !== 'running') {
+                      clearInterval(localTimerInterval);
+                      display.style.fontSize = "100px";
+                      display.className = 'public-timer-display running';
+                      if (!endSoundPlayed) playSound('start');
                       
-                      if (remaining <= 0) {
-                          clearInterval(localTimerInterval);
-                          display.innerText = "00:00.0";
-                          display.className = 'public-timer-display stopped';
-                          if (!endSoundPlayed) { playSound('end'); endSoundPlayed = true; }
-                      } else {
-                          display.innerText = formatTime(remaining);
-                      }
-                  }, 50);
+                      localTimerInterval = setInterval(() => {
+                          let elapsed = Date.now() - game.roundStartTime;
+                          let remaining = game.timerDurationMs - elapsed;
+                          
+                          if (remaining <= 0) {
+                              clearInterval(localTimerInterval);
+                              display.innerText = "00:00.0";
+                              display.className = 'public-timer-display stopped';
+                              if (!endSoundPlayed) { playSound('end'); endSoundPlayed = true; }
+                          } else {
+                              display.innerText = formatTime(remaining);
+                          }
+                      }, 50);
+                      currentTimerState = 'running';
+                  }
               }
               else if (game.roundState === 'ended') {
-                  display.style.fontSize = "100px";
-                  display.innerText = "00:00.0";
-                  display.className = 'public-timer-display stopped';
+                  if (currentTimerState !== 'ended') {
+                      clearInterval(localTimerInterval);
+                      display.style.fontSize = "100px";
+                      display.innerText = "00:00.0";
+                      display.className = 'public-timer-display stopped';
+                      currentTimerState = 'ended';
+                  }
               }
               else if (game.roundState === 'finished') {
-                  display.innerText = "EVENT FINISHED";
-                  display.style.fontSize = "65px";
-                  display.className = 'public-timer-display stopped';
+                  if (currentTimerState !== 'finished') {
+                      clearInterval(localTimerInterval);
+                      display.innerText = "EVENT FINISHED";
+                      display.style.fontSize = "65px";
+                      display.className = 'public-timer-display stopped';
+                      currentTimerState = 'finished';
+                  }
               }
           }
       });
