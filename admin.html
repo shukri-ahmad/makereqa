@@ -44,6 +44,8 @@
         button.btn-gold:hover { filter: brightness(1.1); }
         button.btn-red { background-color: var(--mrq-red); padding: 5px 10px; font-size: 12px; }
         button.btn-green { background-color: var(--mrq-green); color: white; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4);}
+        button.btn-restart { background-color: #9e58cc; padding: 5px 10px; font-size: 12px; }
+        button.btn-restart:hover { background-color: #b16ced; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 18px;}
         td, th { padding: 12px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
@@ -128,7 +130,7 @@
             <thead><tr><th>TEAM NAME</th><th>TOTAL PTS</th><th>TOTAL TIME</th><th>ACTION</th></tr></thead>
             <tbody id="teams-list-body"></tbody>
         </table>
-        <button class="btn-green" onclick="lockTeamsAndProceed()" style="width: 100%; margin-top: 25px; padding: 15px; font-size: 18px;">[ LOCK ROSTER & START MATCH ]</button>
+        <button id="lockRosterBtn" class="btn-green" onclick="lockTeamsAndProceed()" style="width: 100%; margin-top: 25px; padding: 15px; font-size: 18px;">[ LOCK ROSTER & START MATCH ]</button>
     </div>
 
     <div id="roundsTab" class="tab-content">
@@ -174,6 +176,7 @@
   let currentTeamsList = [];
   let allGamesData = {}; 
   let localTimerInterval = null;
+  let currentTimerState = ''; // Added to fix timer glitch
   let audioCtx = null;
   let isAutoEnding = false;
   
@@ -244,6 +247,7 @@
                       <td style="font-weight: bold; text-align: left; padding-left: 15px;">${game.name}</td>
                       <td>
                           <button class="btn-primary" style="padding: 5px 10px; font-size:12px;" onclick="selectGame('${docSnap.id}')">SELECT</button>
+                          <button class="btn-restart" onclick="rebootGame('${docSnap.id}', '${game.name}')">REBOOT</button>
                           <button class="btn-red" onclick="deleteGame('${docSnap.id}', '${game.name}')">DEL</button>
                       </td>
                   </tr>
@@ -251,6 +255,7 @@
           });
 
           if(currentGameId && allGamesData[currentGameId]) {
+              applyRosterLockUI(allGamesData[currentGameId]);
               renderTimerAndRoundUI(allGamesData[currentGameId]); 
           }
       });
@@ -277,7 +282,8 @@
           timerDurationMs: durationMins * 60 * 1000,
           roundState: 'idle', 
           roundStartTime: 0,
-          currentRound: 1
+          currentRound: 1,
+          rosterLocked: false // Added Lock Persistence
       });
       document.getElementById("gameName").value = "";
   };
@@ -289,11 +295,45 @@
       }
   };
 
+  // --- NEW REBOOT SYSTEM ---
+  window.rebootGame = async function(id, name) {
+      if(!confirm(`⚠️ SYSTEM REBOOT: "${name}"?\nThis will reset the event back to Round 1, unlock the roster, and reset all scores to zero. Teams will remain registered. PROCEED?`)) return;
+      
+      await updateDoc(doc(db, "mrq_games", id), { 
+          roundState: 'idle',
+          currentRound: 1,
+          rosterLocked: false,
+          roundStartTime: 0
+      });
+
+      const teamsSnap = await getDocs(collection(db, "mrq_games", id, "mrq_teams"));
+      const teamPromises = [];
+      teamsSnap.forEach(teamDoc => { 
+          teamPromises.push(updateDoc(doc(db, "mrq_games", id, "mrq_teams", teamDoc.id), { 
+              totalPoints: 0, 
+              totalTimeMs: 0,
+              currentRoundStatus: 'idle',
+              currentRoundTimeMs: 0,
+              ncPenaltyMs: 0
+          })); 
+      });
+      await Promise.all(teamPromises);
+      
+      alert(`EVENT REBOOTED: "${name}"`);
+      if (currentGameId === id) {
+          selectGame(id);
+      }
+  };
+
   window.selectGame = function(id) {
       currentGameId = id;
       const game = allGamesData[id];
       document.getElementById("targetGameLabel").innerText = `TARGET EVENT: ${game.name}`;
       
+      // Reset local timer tracker when swapping games
+      currentTimerState = '';
+      clearInterval(localTimerInterval);
+
       if(unsubTeams) unsubTeams();
       
       unsubTeams = onSnapshot(collection(db, "mrq_games", currentGameId, "mrq_teams"), (snapshot) => {
@@ -302,7 +342,6 @@
           renderTeamsList();
           renderTimerAndRoundUI(allGamesData[currentGameId]);
 
-          // --- AUTO STOP LOGIC ---
           const activeGame = allGamesData[currentGameId];
           if (activeGame && activeGame.roundState === 'running' && currentTeamsList.length > 0) {
               const allDone = currentTeamsList.every(t => t.currentRoundStatus === 'done');
@@ -315,7 +354,36 @@
       switchTab('teamsTab', document.getElementById('tabBtn1'));
   };
 
+  // --- PERSISTENT ROSTER LOCK ---
+  function applyRosterLockUI(game) {
+      const lockBtn = document.getElementById("lockRosterBtn");
+      const setupControls = document.getElementById("teamSetupControls");
+      
+      if (!lockBtn || !setupControls) return;
+
+      if (game.rosterLocked) {
+          setupControls.style.display = "none";
+          lockBtn.innerText = "[ ROSTER LOCKED - PROCEED TO MATCH ]";
+          lockBtn.className = "btn-gold";
+          lockBtn.onclick = () => switchTab('roundsTab', document.getElementById('tabBtn2'));
+      } else {
+          setupControls.style.display = "block";
+          lockBtn.innerText = "[ LOCK ROSTER & START MATCH ]";
+          lockBtn.className = "btn-green";
+          lockBtn.onclick = lockTeamsAndProceed;
+      }
+  }
+
+  window.lockTeamsAndProceed = async function() {
+      if(currentTeamsList.length === 0) return alert("Please register at least 1 team first.");
+      if(confirm("Lock Roster and proceed to the Match Dashboard?\nYou will not be able to add or delete teams unless you Reboot the event.")) {
+          await updateDoc(doc(db, "mrq_games", currentGameId), { rosterLocked: true });
+          switchTab('roundsTab', document.getElementById('tabBtn2'));
+      }
+  };
+
   function renderTeamsList() {
+      const game = allGamesData[currentGameId] || {};
       document.getElementById("teamCount").innerText = currentTeamsList.length;
       const tbody = document.getElementById("teams-list-body");
       let htmlString = "";
@@ -326,11 +394,15 @@
       });
 
       sortedRoster.forEach(team => {
+          const actionHtml = game.rosterLocked 
+              ? `<span style="color:#6e7681; font-weight:bold;">LOCKED</span>` 
+              : `<button class="btn-red" onclick="deleteTeam('${team.id}', '${team.name}')">DEL</button>`;
+
           htmlString += `<tr>
               <td style="text-align: left; padding-left: 15px; font-weight: bold;">${team.name}</td>
               <td style="color: var(--mrq-gold); font-weight:bold;">${team.totalPoints}</td>
               <td>${formatTime(team.totalTimeMs)}</td>
-              <td><button class="btn-red" onclick="deleteTeam('${team.id}', '${team.name}')">DEL</button></td>
+              <td>${actionHtml}</td>
           </tr>`;
       });
       tbody.innerHTML = htmlString;
@@ -358,12 +430,6 @@
       if(confirm(`Delete Team: ${name}?`)) await deleteDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", id));
   };
 
-  window.lockTeamsAndProceed = function() {
-      if(currentTeamsList.length === 0) return alert("Please register at least 1 team first.");
-      if(confirm("Lock Roster and proceed to the Match Dashboard?")) {
-          switchTab('roundsTab', document.getElementById('tabBtn2'));
-      }
-  };
 
   function renderTimerAndRoundUI(game) {
       if(!game) return;
@@ -385,7 +451,6 @@
           else if (game.roundState === 'running') {
               if (team.currentRoundStatus === 'done') {
                   statusHtml = `<span class="status-badge status-done">${formatTime(team.currentRoundTimeMs)}</span>`;
-                  // THE NC BUTTON LOGIC
                   actionHtml = `
                     <span style="color:var(--mrq-green); font-weight:bold; margin-right:15px;">FINISHED</span>
                     <button class="btn-red" style="padding:5px 10px; border:2px solid white;" onclick="markTeamNC('${team.id}')">NC</button>
@@ -420,43 +485,59 @@
       });
       tbody.innerHTML = htmlString;
 
-      clearInterval(localTimerInterval);
+      // --- FIXED TIMER ENGINE (Prevents disappearing / restarting glitches) ---
       if (game.roundState === 'idle') {
-          display.style.fontSize = "70px";
-          display.innerText = formatTime(game.timerDurationMs);
-          display.className = 'timer-display';
-          controlsBox.innerHTML = `<button class="btn-green" style="padding: 15px 30px; font-size: 18px;" onclick="startRound()">START BUILD ROUND</button>`;
+          if (currentTimerState !== 'idle') {
+              clearInterval(localTimerInterval);
+              display.style.fontSize = "70px";
+              display.innerText = formatTime(game.timerDurationMs);
+              display.className = 'timer-display';
+              controlsBox.innerHTML = `<button class="btn-green" style="padding: 15px 30px; font-size: 18px;" onclick="startRound()">START BUILD ROUND</button>`;
+              currentTimerState = 'idle';
+          }
       } 
       else if (game.roundState === 'running') {
-          display.style.fontSize = "70px";
-          display.className = 'timer-display running';
-          controlsBox.innerHTML = `<button class="btn-red" onclick="forceEndRound(false)">STOP ROUND (TIME UP)</button>`;
-          
-          localTimerInterval = setInterval(() => {
-              let elapsed = Date.now() - game.roundStartTime;
-              let remaining = game.timerDurationMs - elapsed;
+          if (currentTimerState !== 'running') {
+              clearInterval(localTimerInterval);
+              display.style.fontSize = "70px";
+              display.className = 'timer-display running';
+              controlsBox.innerHTML = `<button class="btn-red" onclick="forceEndRound(false)">STOP ROUND (TIME UP)</button>`;
               
-              if (remaining <= 0) {
-                  clearInterval(localTimerInterval);
-                  display.innerText = "00:00.0";
-                  display.className = 'timer-display stopped';
-                  triggerAutoEndRound(); 
-              } else {
-                  display.innerText = formatTime(remaining);
-              }
-          }, 50);
+              localTimerInterval = setInterval(() => {
+                  let elapsed = Date.now() - game.roundStartTime;
+                  let remaining = game.timerDurationMs - elapsed;
+                  
+                  if (remaining <= 0) {
+                      clearInterval(localTimerInterval);
+                      display.innerText = "00:00.0";
+                      display.className = 'timer-display stopped';
+                      triggerAutoEndRound(); 
+                  } else {
+                      display.innerText = formatTime(remaining);
+                  }
+              }, 50);
+              currentTimerState = 'running';
+          }
       }
       else if (game.roundState === 'ended') {
-          display.style.fontSize = "70px";
-          display.innerText = "00:00.0";
-          display.className = 'timer-display stopped';
-          controlsBox.innerHTML = `<button class="btn-gold" style="width:auto; margin-top:0; padding:15px; font-size:16px;" onclick="document.getElementById('endRoundModal').style.display='flex'">CALCULATE POINTS</button>`;
+          if (currentTimerState !== 'ended') {
+              clearInterval(localTimerInterval);
+              display.style.fontSize = "70px";
+              display.innerText = "00:00.0";
+              display.className = 'timer-display stopped';
+              controlsBox.innerHTML = `<button class="btn-gold" style="width:auto; margin-top:0; padding:15px; font-size:16px;" onclick="document.getElementById('endRoundModal').style.display='flex'">CALCULATE POINTS</button>`;
+              currentTimerState = 'ended';
+          }
       }
       else if (game.roundState === 'finished') {
-          display.innerText = "EVENT FINISHED";
-          display.style.fontSize = "50px";
-          display.className = 'timer-display stopped';
-          controlsBox.innerHTML = `<span style="color:var(--mrq-gold); font-weight:bold; font-size: 20px;">ALL ROUNDS COMPLETED. SCORES LOCKED.</span>`;
+          if (currentTimerState !== 'finished') {
+              clearInterval(localTimerInterval);
+              display.innerText = "EVENT FINISHED";
+              display.style.fontSize = "50px";
+              display.className = 'timer-display stopped';
+              controlsBox.innerHTML = `<span style="color:var(--mrq-gold); font-weight:bold; font-size: 20px;">ALL ROUNDS COMPLETED. SCORES LOCKED.</span>`;
+              currentTimerState = 'finished';
+          }
       }
   }
 
@@ -468,7 +549,7 @@
           updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", t.id), { 
               currentRoundStatus: 'playing', 
               currentRoundTimeMs: 0,
-              ncPenaltyMs: 0 // Reset penalty at the start of every round
+              ncPenaltyMs: 0 
           })
       );
       await Promise.all(teamPromises);
@@ -488,7 +569,6 @@
       const team = currentTeamsList.find(t => t.id === teamId);
       const penalty = team.ncPenaltyMs || 0;
       
-      // Calculate final recorded time by adding any NC penalty they accumulated
       await updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamId), { 
           currentRoundStatus: 'done', 
           currentRoundTimeMs: elapsed + penalty 
@@ -502,18 +582,15 @@
       const team = currentTeamsList.find(t => t.id === teamId);
       if(!team || team.currentRoundStatus !== 'done') return;
 
-      // Find the slowest team that is currently marked 'done'
       const doneTeams = currentTeamsList.filter(t => t.currentRoundStatus === 'done');
       let maxDoneTime = 0;
       if(doneTeams.length > 0) {
           maxDoneTime = Math.max(...doneTeams.map(t => t.currentRoundTimeMs));
       }
 
-      // Calculate how much extra time needs to be added to ensure they place AFTER the slowest correct team
       const penalty = Math.max(0, maxDoneTime - team.currentRoundTimeMs);
       const newTotalPenalty = (team.ncPenaltyMs || 0) + penalty;
 
-      // Revert team to playing state
       await updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamId), { 
           currentRoundStatus: 'playing', 
           ncPenaltyMs: newTotalPenalty
@@ -538,7 +615,6 @@
       document.getElementById('endRoundModal').style.display = 'none';
       const game = allGamesData[currentGameId];
       
-      // Sort teams by evaluated time
       let roundResults = currentTeamsList.map(t => {
           let time = (t.currentRoundStatus === 'done') ? t.currentRoundTimeMs : game.timerDurationMs;
           return { ...t, evaluatedTime: time };
@@ -546,7 +622,6 @@
       
       roundResults.sort((a, b) => a.evaluatedTime - b.evaluatedTime);
 
-      // Assign Points
       const teamPromises = roundResults.map((teamData, index) => {
           let pointsEarned = index < POINTS_SYSTEM.length ? POINTS_SYSTEM[index] : 0;
           return updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamData.id), { 
