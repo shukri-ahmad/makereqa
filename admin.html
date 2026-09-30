@@ -150,7 +150,7 @@
             <div style="color: white; font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-bottom: 5px;">ROUND <span id="roundCounterDisplay">1</span> TIMER</div>
             <div id="timeClock" class="timer-display">00:00.0</div>
             <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;" id="timerControlsBox">
-                <button class="btn-green" style="padding: 15px 30px; font-size: 18px;" onclick="startRound()">START BUILD ROUND</button>
+                <!-- Buttons are automatically injected here by the script based on state -->
             </div>
         </div>
 
@@ -189,6 +189,7 @@
   let allGamesData = {}; 
   let localTimerInterval = null;
   let currentTimerState = ''; 
+  let lastRosterLockState = null; // Tracks lock state to trigger UI updates
   let audioCtx = null;
   let isAutoEnding = false;
   
@@ -347,6 +348,7 @@
       document.getElementById("targetGameLabel").innerText = `TARGET EVENT: ${game.name}`;
       
       currentTimerState = '';
+      lastRosterLockState = null;
       clearInterval(localTimerInterval);
 
       if(unsubTeams) unsubTeams();
@@ -516,15 +518,22 @@
       });
       tbody.innerHTML = htmlString;
 
-      // Timer Rendering Logic
+      // Timer Rendering Logic with Lock Roster Protection
       if (game.roundState === 'idle') {
-          if (currentTimerState !== 'idle') {
+          if (currentTimerState !== 'idle' || lastRosterLockState !== game.rosterLocked) {
               clearInterval(localTimerInterval);
               display.style.fontSize = "70px";
               display.innerText = formatTime(game.timerDurationMs);
               display.className = 'timer-display';
-              controlsBox.innerHTML = `<button class="btn-green" style="padding: 15px 30px; font-size: 18px;" onclick="startRound()">START BUILD ROUND</button>`;
+
+              if (game.rosterLocked) {
+                  controlsBox.innerHTML = `<button class="btn-green" style="padding: 15px 30px; font-size: 18px;" onclick="startRound()">START BUILD ROUND</button>`;
+              } else {
+                  controlsBox.innerHTML = `<button style="background: #444; color: #888; padding: 15px 30px; font-size: 18px; border: none; border-radius: 4px; font-weight: bold; font-family: 'Orbitron', sans-serif; cursor: not-allowed;" onclick="alert('SYSTEM LOCK: Please go to the TEAMS tab and click [LOCK ROSTER] before starting the match.')">REQUIRE ROSTER LOCK</button>`;
+              }
+              
               currentTimerState = 'idle';
+              lastRosterLockState = game.rosterLocked;
           }
       } 
       else if (game.roundState === 'running') {
@@ -580,6 +589,9 @@
 
   window.startRound = async function() {
       if(currentTeamsList.length === 0) return alert("Add teams first.");
+      const game = allGamesData[currentGameId];
+      if(!game.rosterLocked) return alert("SYSTEM LOCK: Please lock the roster in the TEAMS tab first.");
+
       playSound('start');
       
       const teamPromises = currentTeamsList.map(t => 
@@ -623,7 +635,7 @@
 
   window.markTeamNC = async function(teamId) {
       const team = currentTeamsList.find(t => t.id === teamId);
-      if(!team || team.isLockedForNC) return; // Backend protection
+      if(!team || team.isLockedForNC) return; 
 
       await updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamId), { 
           currentRoundStatus: 'nc' 
@@ -673,14 +685,12 @@
               maxValidTime = Math.max(...validTeams.map(t => t.currentRoundTimeMs));
           }
           
-          // Lock correctly finished teams
           const validPromises = validTeams.map(t => 
               updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", t.id), { 
                   isLockedForNC: true
               })
           );
 
-          // Revert NC teams to playing
           const ncTeams = currentTeamsList.filter(t => t.currentRoundStatus === 'nc');
           const ncPromises = ncTeams.map(t => 
               updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", t.id), { 
@@ -700,11 +710,10 @@
           return;
       }
 
-      // Action 'next' or 'end': Calculate strict points
       let validTeams = currentTeamsList.filter(t => t.currentRoundStatus === 'done');
       validTeams.sort((a,b) => a.currentRoundTimeMs - b.currentRoundTimeMs);
       
-      let invalidTeams = currentTeamsList.filter(t => t.currentRoundStatus !== 'done'); // NC or DNF
+      let invalidTeams = currentTeamsList.filter(t => t.currentRoundStatus !== 'done');
 
       let validPromises = validTeams.map((teamData, index) => {
           let pointsEarned = index < POINTS_SYSTEM.length ? POINTS_SYSTEM[index] : 0;
@@ -714,7 +723,7 @@
               currentRoundStatus: 'idle',
               currentRoundTimeMs: 0,
               ncBaseTime: 0,
-              isLockedForNC: false // Reset lock
+              isLockedForNC: false 
           });
       });
 
@@ -725,7 +734,7 @@
               currentRoundStatus: 'idle',
               currentRoundTimeMs: 0,
               ncBaseTime: 0,
-              isLockedForNC: false // Reset lock
+              isLockedForNC: false 
           });
       });
 
