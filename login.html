@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - MakeReqa Build & Match</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mrq-dark: #0B132B;
+            --mrq-panel: #1C2541;
+            --mrq-gold: #FFB300;
+            --mrq-blue: #2196F3;
+        }
+        body { font-family: 'Rajdhani', sans-serif; background-color: var(--mrq-dark); color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-box { background: var(--mrq-panel); padding: 40px; border-radius: 12px; border-top: 5px solid var(--mrq-gold); border-bottom: 5px solid var(--mrq-blue); box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; width: 350px; }
+        h2 { font-family: 'Orbitron', sans-serif; color: var(--mrq-gold); }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: #0B132B; color: white; box-sizing: border-box; font-family: 'Rajdhani', sans-serif; font-size: 16px;}
+        button { width: 100%; padding: 12px; background: var(--mrq-blue); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-family: 'Orbitron', sans-serif; font-size: 16px; margin-top: 15px;}
+        button:hover { background: #1976D2; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <img src="image_5e2713.png" alt="MakeReqa Logo" style="max-width: 250px; margin-bottom: 20px;">
+        <h2>ADMIN LOGIN</h2>
+        <input type="email" id="email" placeholder="Email Address" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button onclick="login()">AUTHORIZE</button>
+        <p id="error-msg" style="color: #ff4c4c; font-weight: bold; margin-top: 15px; display: none;"></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcX-3R3eMR5wu1igI6fz3XiqeldiN4n68",
+            authDomain: "makereqa.firebaseapp.com",
+            projectId: "makereqa",
+            storageBucket: "makereqa.firebasestorage.app",
+            messagingSenderId: "810656848426",
+            appId: "1:810656848426:web:746129db0318383236c153"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        window.login = () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            signInWithEmailAndPassword(auth, email, password)
+                .then(() => window.location.href = "admin.html")
+                .catch(error => {
+                    const msg = document.getElementById('error-msg');
+                    msg.style.display = "block";
+                    msg.innerText = error.message;
+                });
+        };
+    </script>
+</body>
+</html>
