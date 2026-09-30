@@ -176,11 +176,13 @@
               clearInterval(localTimerInterval);
               
               if (game.roundState === 'idle') {
+                  display.style.fontSize = "100px";
                   display.innerText = formatTime(game.timerDurationMs);
                   display.className = 'public-timer-display';
                   endSoundPlayed = false;
               } 
               else if (game.roundState === 'running') {
+                  display.style.fontSize = "100px";
                   display.className = 'public-timer-display running';
                   if (!localTimerInterval && !endSoundPlayed) playSound('start');
                   
@@ -199,7 +201,13 @@
                   }, 50);
               }
               else if (game.roundState === 'ended') {
+                  display.style.fontSize = "100px";
                   display.innerText = "00:00.0";
+                  display.className = 'public-timer-display stopped';
+              }
+              else if (game.roundState === 'finished') {
+                  display.innerText = "EVENT FINISHED";
+                  display.style.fontSize = "65px";
                   display.className = 'public-timer-display stopped';
               }
           }
