@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MakeReqa Build & Match - LIVE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mrq-dark: #0B132B;
+            --mrq-panel: #1C2541;
+            --mrq-gold: #FFB300;
+            --mrq-red: #E71D24;
+            --mrq-blue: #2196F3;
+            --mrq-green: #4CAF50;
+            --text-main: #FFFFFF;
+        }
+
+        body { font-family: 'Rajdhani', sans-serif; background-color: var(--mrq-dark); color: var(--text-main); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: var(--mrq-panel); padding: 20px 30px; border-radius: 12px; border-top: 5px solid var(--mrq-gold); box-shadow: 0 10px 30px rgba(0,0,0,0.8); margin-bottom: 30px; }
+        
+        .header-links { text-align: right; margin-bottom: 10px; }
+        .header-links a { color: var(--mrq-blue); text-decoration: none; font-weight: bold; font-family: 'Orbitron', sans-serif; font-size: 14px;}
+        
+        h1, h2, h3 { font-family: 'Orbitron', sans-serif; text-align: center; color: white; margin-top: 0;}
+        
+        .game-selector { text-align: center; margin-bottom: 25px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+        .game-selector select { padding: 10px; font-size: 16px; border-radius: 4px; font-weight: bold; width: 50%; background: #0B132B; color: var(--mrq-gold); border: 1px solid var(--mrq-blue); font-family: 'Rajdhani', sans-serif; }
+
+        .public-timer-container { text-align: center; background: #000; padding: 15px; border: 3px solid var(--mrq-gold); border-radius: 12px; margin-bottom: 25px; box-shadow: 0 0 30px rgba(255, 179, 0, 0.2); }
+        .public-timer-display { font-size: 100px; font-family: 'Orbitron', sans-serif; color: var(--mrq-gold); font-weight: 900; line-height: 1;}
+        .public-timer-display.running { color: var(--mrq-green); text-shadow: 0 0 25px rgba(76, 175, 80, 0.6); }
+        .public-timer-display.stopped { color: var(--mrq-red); text-shadow: 0 0 25px rgba(231, 29, 36, 0.6); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 20px; }
+        th, td { padding: 15px 12px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); vertical-align: middle;}
+        th { background: #0B132B; color: var(--mrq-gold); font-family: 'Orbitron', sans-serif; font-size: 15px; letter-spacing: 1px; }
+        
+        .rank-1 { background: rgba(255, 179, 0, 0.15) !important; }
+        .rank-1 td { font-weight: bold; text-shadow: 0 0 5px var(--mrq-gold); }
+        
+        .team-name { font-weight: bold; text-align: left; padding-left: 20px; font-size: 1.2em; color: white;}
+        .pts-box { font-size: 1.3em; font-weight: bold; color: var(--mrq-blue); }
+        
+        .status-badge { padding: 5px 10px; border-radius: 4px; font-size: 16px; font-weight: bold; font-family: 'Orbitron', sans-serif;}
+        .status-playing { color: var(--mrq-blue); animation: pulse 1.5s infinite; }
+        .status-done { color: var(--mrq-green); }
+        .status-dnf { color: var(--mrq-red); }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-links"><a href="admin.html">[ ADMIN TERMINAL ]</a></div>
+    
+    <div style="text-align: center; margin-bottom: 10px;">
+        <img src="image_5e2713.png" alt="MakeReqa Logo" style="max-width: 350px;">
+        <div style="font-family: 'Orbitron', sans-serif; font-size: 16px; color: #8b949e; letter-spacing: 2px; margin-top: 10px;">LIVE TOURNAMENT FEED</div>
+    </div>
+    
+    <div class="game-selector">
+        <select id="publicGameSelect" onchange="loadSelectedGame()"><option>INITIALIZING...</option></select>
+    </div>
+
+    <!-- PUBLIC MATCH TIMER -->
+    <div id="publicTimerUI" class="public-timer-container" style="display:none;">
+        <div style="color: white; font-size: 18px; font-weight: bold; letter-spacing: 4px; font-family: 'Orbitron', sans-serif; margin-bottom: 5px;">ROUND <span id="pubRoundText"></span> TIMER</div>
+        <div id="publicTimeClock" class="public-timer-display">00:00.0</div>
+    </div>
+    
+    <div style="display:flex; gap:20px;">
+        <div style="flex:1;">
+            <h3 style="color: var(--mrq-blue); border-bottom: 2px solid var(--mrq-blue); padding-bottom:10px;">OVERALL LEADERBOARD</h3>
+            <p style="text-align: center; font-size: 14px; color: #8b949e; margin-top: -5px;">RANKED BY: POINTS ➔ FASTEST TOTAL TIME</p>
+            <table>
+                <thead><tr><th>RANK</th><th>TEAM</th><th>POINTS</th><th>TOTAL TIME</th></tr></thead>
+                <tbody id="leaderboard-body"><tr><td colspan="4">AWAITING DATA...</td></tr></tbody>
+            </table>
+        </div>
+
+        <div style="flex:1;" id="liveRoundSection">
+            <h3 style="color: var(--mrq-gold); border-bottom: 2px solid var(--mrq-gold); padding-bottom:10px;">LIVE ROUND STATUS</h3>
+            <p style="text-align: center; font-size: 14px; color: #8b949e; margin-top: -5px;">AWAITING ROUND START</p>
+            <table>
+                <thead><tr><th>TEAM</th><th>STATUS / TIME</th></tr></thead>
+                <tbody id="live-status-body"><tr><td colspan="2">AWAITING DATA...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, doc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCcX-3R3eMR5wu1igI6fz3XiqeldiN4n68",
+    authDomain: "makereqa.firebaseapp.com",
+    projectId: "makereqa",
+    storageBucket: "makereqa.firebasestorage.app",
+    messagingSenderId: "810656848426",
+    appId: "1:810656848426:web:746129db0318383236c153"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let unsubGameDoc = null;
+  let unsubTeams = null;
+
+  let audioCtx = null;
+  function getAudioCtx() {
+      if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+      return audioCtx;
+  }
+  document.addEventListener('click', () => { if(getAudioCtx() && audioCtx.state === 'suspended') audioCtx.resume(); }, { once: true });
+
+  function playSound(type) {
+      const ctx = getAudioCtx(); if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume();
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+
+      if (type === 'start') {
+          osc.type = 'square'; osc.frequency.setValueAtTime(600, ctx.currentTime);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          osc.start(); osc.stop(ctx.currentTime + 0.8);
+      } else if (type === 'end') {
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, ctx.currentTime);
+          gain.gain.setValueAtTime(0.2, ctx.currentTime);
+          osc.start(); osc.stop(ctx.currentTime + 1.5);
+      }
+  }
+
+  function formatTime(ms) {
+      if (ms < 0) ms = 0;
+      let totalSeconds = Math.floor(ms / 1000);
+      let m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+      let s = (totalSeconds % 60).toString().padStart(2, '0');
+      let dec = Math.floor((ms % 1000) / 100);
+      return `${m}:${s}.${dec}`;
+  }
+
+  let localTimerInterval = null;
+  let endSoundPlayed = false;
+
+  async function loadGamesList() {
+      const selectElement = document.getElementById("publicGameSelect");
+      const gamesSnap = await getDocs(collection(db, "mrq_games"));
+      selectElement.innerHTML = "";
+      if(gamesSnap.empty) return selectElement.innerHTML = "<option>NO EVENTS FOUND</option>";
+
+      gamesSnap.forEach(documentDoc => { 
+          selectElement.innerHTML += `<option value="${documentDoc.id}">${documentDoc.data().name}</option>`; 
+      });
+      loadSelectedGame();
+  }
+  loadGamesList();
+
+  window.loadSelectedGame = function() {
+      const gameId = document.getElementById("publicGameSelect").value;
+      if(!gameId || gameId === "NO EVENTS FOUND") return;
+
+      if(unsubGameDoc) unsubGameDoc();
+      if(unsubTeams) unsubTeams();
+
+      unsubGameDoc = onSnapshot(doc(db, "mrq_games", gameId), (docSnap) => {
+          if (docSnap.exists()) {
+              const game = docSnap.data();
+              document.getElementById("publicTimerUI").style.display = "block";
+              document.getElementById("pubRoundText").innerText = game.currentRound;
+              const display = document.getElementById("publicTimeClock");
+
+              clearInterval(localTimerInterval);
+              
+              if (game.roundState === 'idle') {
+                  display.innerText = formatTime(game.timerDurationMs);
+                  display.className = 'public-timer-display';
+                  endSoundPlayed = false;
+              } 
+              else if (game.roundState === 'running') {
+                  display.className = 'public-timer-display running';
+                  if (!localTimerInterval && !endSoundPlayed) playSound('start');
+                  
+                  localTimerInterval = setInterval(() => {
+                      let elapsed = Date.now() - game.roundStartTime;
+                      let remaining = game.timerDurationMs - elapsed;
+                      
+                      if (remaining <= 0) {
+                          clearInterval(localTimerInterval);
+                          display.innerText = "00:00.0";
+                          display.className = 'public-timer-display stopped';
+                          if (!endSoundPlayed) { playSound('end'); endSoundPlayed = true; }
+                      } else {
+                          display.innerText = formatTime(remaining);
+                      }
+                  }, 50);
+              }
+              else if (game.roundState === 'ended') {
+                  display.innerText = "00:00.0";
+                  display.className = 'public-timer-display stopped';
+              }
+          }
+      });
+
+      unsubTeams = onSnapshot(collection(db, "mrq_games", gameId, "mrq_teams"), (snapshot) => {
+        let teams = [];
+        snapshot.forEach(d => teams.push({ id: d.id, ...d.data() }));
+
+        let sortedLeaderboard = [...teams].sort((a, b) => {
+            if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+            return a.totalTimeMs - b.totalTimeMs; 
+        });
+
+        const lBody = document.getElementById("leaderboard-body");
+        lBody.innerHTML = ""; 
+        sortedLeaderboard.forEach((team, index) => {
+          lBody.innerHTML += `
+            <tr class="${index === 0 && (team.totalPoints > 0) ? 'rank-1' : ''}">
+              <td style="font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 1.2em;">${index + 1}</td>
+              <td class="team-name">${team.name}</td>
+              <td class="pts-box">${team.totalPoints}</td>
+              <td style="font-family: 'Orbitron', sans-serif; font-weight: bold;">${formatTime(team.totalTimeMs)}</td>
+            </tr>`;
+        });
+
+        const sBody = document.getElementById("live-status-body");
+        sBody.innerHTML = "";
+        teams.forEach(team => {
+            let statusHtml = "";
+            if (team.currentRoundStatus === 'idle') statusHtml = `<span style="color:#555;">WAITING</span>`;
+            else if (team.currentRoundStatus === 'playing') statusHtml = `<span class="status-badge status-playing">BUILDING...</span>`;
+            else if (team.currentRoundStatus === 'done') statusHtml = `<span class="status-badge status-done">${formatTime(team.currentRoundTimeMs)}</span>`;
+            
+            sBody.innerHTML += `<tr>
+                <td class="team-name">${team.name}</td>
+                <td>${statusHtml}</td>
+            </tr>`;
+        });
+      });
+  };
+</script>
+
+</body>
+</html>
