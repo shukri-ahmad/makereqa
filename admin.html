@@ -68,7 +68,7 @@
         /* MODAL CSS */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; }
         .modal-box { background: var(--mrq-panel); padding: 40px; border-radius: 12px; border: 3px solid var(--mrq-gold); text-align: center; max-width: 550px; box-shadow: 0 0 30px rgba(255, 179, 0, 0.3); }
-        .modal-box h2 { font-size: 32px; color: var(--mrq-green); margin-top: 0; }
+        .modal-box h2 { font-size: 32px; color: var(--mrq-gold); margin-top: 0; }
         .modal-box p { font-size: 18px; color: #c9d1d9; margin-bottom: 30px; }
     </style>
 </head>
@@ -76,9 +76,10 @@
 
 <div class="modal-overlay" id="endRoundModal">
     <div class="modal-box">
-        <h2>ALL TEAMS FINISHED!</h2>
-        <p>The timer has automatically stopped. Please select your next action:</p>
-        <button class="btn-primary" style="width: 100%; margin-bottom: 15px; padding: 15px; font-size: 16px;" onclick="handleModalAction('next')">CALCULATE SCORES & BEGIN ANOTHER ROUND</button>
+        <h2>ROUND STOPPED</h2>
+        <p>Timer paused. Select your next action:</p>
+        <button class="btn-primary" style="width: 100%; margin-bottom: 15px; padding: 15px; font-size: 16px; background: #555;" onclick="handleModalAction('resume')">RESUME ROUND (CLOSE POPUP / MARK NC)</button>
+        <button class="btn-green" style="width: 100%; margin-bottom: 15px; padding: 15px; font-size: 16px;" onclick="handleModalAction('next')">CALCULATE SCORES & NEXT ROUND</button>
         <button class="btn-gold" style="width: 100%; padding: 15px; font-size: 16px;" onclick="handleModalAction('end')">CALCULATE FINAL SCORES & END EVENT</button>
     </div>
 </div>
@@ -176,7 +177,7 @@
   let currentTeamsList = [];
   let allGamesData = {}; 
   let localTimerInterval = null;
-  let currentTimerState = ''; // Added to fix timer glitch
+  let currentTimerState = ''; 
   let audioCtx = null;
   let isAutoEnding = false;
   
@@ -283,7 +284,7 @@
           roundState: 'idle', 
           roundStartTime: 0,
           currentRound: 1,
-          rosterLocked: false // Added Lock Persistence
+          rosterLocked: false 
       });
       document.getElementById("gameName").value = "";
   };
@@ -295,7 +296,6 @@
       }
   };
 
-  // --- NEW REBOOT SYSTEM ---
   window.rebootGame = async function(id, name) {
       if(!confirm(`⚠️ SYSTEM REBOOT: "${name}"?\nThis will reset the event back to Round 1, unlock the roster, and reset all scores to zero. Teams will remain registered. PROCEED?`)) return;
       
@@ -330,7 +330,6 @@
       const game = allGamesData[id];
       document.getElementById("targetGameLabel").innerText = `TARGET EVENT: ${game.name}`;
       
-      // Reset local timer tracker when swapping games
       currentTimerState = '';
       clearInterval(localTimerInterval);
 
@@ -354,7 +353,6 @@
       switchTab('teamsTab', document.getElementById('tabBtn1'));
   };
 
-  // --- PERSISTENT ROSTER LOCK ---
   function applyRosterLockUI(game) {
       const lockBtn = document.getElementById("lockRosterBtn");
       const setupControls = document.getElementById("teamSetupControls");
@@ -464,7 +462,7 @@
               if (team.currentRoundStatus === 'done') {
                   statusHtml = `<span class="status-badge status-done">${formatTime(team.currentRoundTimeMs)}</span>`;
               } else {
-                  statusHtml = `<span class="status-badge status-dnf">TIME UP (DNF)</span>`;
+                  statusHtml = `<span class="status-badge status-dnf">TIME UP (DNF / NC)</span>`;
               }
               actionHtml = `<span style="color:#555;">ROUND OVER</span>`;
           }
@@ -485,7 +483,6 @@
       });
       tbody.innerHTML = htmlString;
 
-      // --- FIXED TIMER ENGINE (Prevents disappearing / restarting glitches) ---
       if (game.roundState === 'idle') {
           if (currentTimerState !== 'idle') {
               clearInterval(localTimerInterval);
@@ -611,19 +608,36 @@
       triggerAutoEndRound();
   };
 
+  // --- NEW POINT CALCULATION LOGIC ---
   window.handleModalAction = async function(action) {
       document.getElementById('endRoundModal').style.display = 'none';
       const game = allGamesData[currentGameId];
       
+      // If Admin clicked RESUME ROUND
+      if (action === 'resume') {
+          isAutoEnding = false; // Allow auto-end to trigger again if needed
+          await updateDoc(doc(db, "mrq_games", currentGameId), { roundState: 'running' });
+          return;
+      }
+
+      // 1. Sort teams by their elapsed time
       let roundResults = currentTeamsList.map(t => {
           let time = (t.currentRoundStatus === 'done') ? t.currentRoundTimeMs : game.timerDurationMs;
           return { ...t, evaluatedTime: time };
       });
-      
       roundResults.sort((a, b) => a.evaluatedTime - b.evaluatedTime);
 
-      const teamPromises = roundResults.map((teamData, index) => {
-          let pointsEarned = index < POINTS_SYSTEM.length ? POINTS_SYSTEM[index] : 0;
+      // 2. Assign Points ONLY to teams that successfully finished
+      let validRank = 0; 
+      const teamPromises = roundResults.map((teamData) => {
+          let pointsEarned = 0;
+          
+          // If they actually finished the build correctly (Not NC or DNF)
+          if (teamData.currentRoundStatus === 'done' && teamData.evaluatedTime < game.timerDurationMs) {
+              pointsEarned = validRank < POINTS_SYSTEM.length ? POINTS_SYSTEM[validRank] : 0;
+              validRank++; // Only increment the rank if someone actually earned points
+          }
+
           return updateDoc(doc(db, "mrq_games", currentGameId, "mrq_teams", teamData.id), { 
               totalPoints: teamData.totalPoints + pointsEarned,
               totalTimeMs: teamData.totalTimeMs + teamData.evaluatedTime,
@@ -634,12 +648,13 @@
       });
       await Promise.all(teamPromises);
 
+      // 3. Set the new Round State
       if (action === 'next') {
           await updateDoc(doc(db, "mrq_games", currentGameId), { 
               roundState: 'idle',
               currentRound: game.currentRound + 1
           });
-      } else {
+      } else if (action === 'end') {
           await updateDoc(doc(db, "mrq_games", currentGameId), { 
               roundState: 'finished'
           });
